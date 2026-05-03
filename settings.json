@@ -1,0 +1,40 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); [[ \"$f\" == /home/em/.claude/projects/-home-em-development/memory/* ]] && git -C /home/em/.claude/projects/-home-em-development/memory add -A && git -C /home/em/.claude/projects/-home-em-development/memory commit -m \"update\" && git -C /home/em/.claude/projects/-home-em-development/memory push 2>/dev/null || true",
+            "statusMessage": "Syncing memory to GitHub..."
+          },
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); [[ \"$f\" == /home/em/.claude-config/* || \"$f\" == /home/em/.claude/settings.json || \"$f\" == /home/em/.claude/statusline.sh || \"$f\" == /home/em/.claude/session_start.sh ]] && git -C /home/em/.claude-config add -A && git -C /home/em/.claude-config commit -m \"update\" && git -C /home/em/.claude-config push 2>/dev/null || true",
+            "statusMessage": "Syncing config to GitHub..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/em/.claude/session_start.sh",
+            "timeout": 10,
+            "statusMessage": "Checking HA + memory..."
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "/home/em/.claude/statusline.sh"
+  },
+  "effortLevel": "xhigh",
+  "theme": "dark",
+  "agentPushNotifEnabled": true
+}
