@@ -6,8 +6,12 @@ Claude Code config that's portable across dev machines (paired with the
 Contents:
 - `settings.json` — `~/.claude/settings.json` (hooks, statusLine, etc.)
 - `statusline.sh` — fast status line script
-- `session_start.sh` — health-check probe run at session start
+- `session_start.sh` — health-check probe + cross-machine handoff banner at session start
+- `session_end.sh` — stamps `.last_session` marker + pushes memory at Stop
+- `prune-backups.sh` — periodic cleanup of `.claude.json` timestamped backups
+- `setup-symlinks.sh` — extracted from `bootstrap.sh`; relinks `~/.claude/*` after a config-file addition
 - `bootstrap.sh` — one-shot setup for a fresh machine
+- `commands/` — per-file slash command definitions, symlinked into `~/.claude/commands/`
 
 ## Bootstrap a new dev machine
 
