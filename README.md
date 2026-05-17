@@ -22,12 +22,13 @@ bash <(curl -sSL https://raw.githubusercontent.com/pbhwheeler/claude-config/main
 ```
 
 The script will:
-1. `apt install` git, jq, curl, cifs-utils, npm
+1. `apt install` git, jq, curl, cifs-utils, samba-client, npm
 2. Clone this repo to `~/.claude-config`
 3. Clone `claude-memory` to `~/.claude/projects/-home-em-development/memory`
-4. Symlink `settings.json`, `statusline.sh`, `session_start.sh` into `~/.claude/`
-5. Patch `~/.claude.json` with the HA / GitHub / sqlite MCP server entries
+4. Symlink `settings.json`, `statusline.sh`, `session_start.sh`, `session_end.sh`, `prune-backups.sh`, and `commands/*.md` into `~/.claude/`
+5. Patch `~/.claude.json` with the HA + GitHub MCP server entries (sqlite retired 2026-05-17 — REST `/api/history/period/` is used instead)
 6. Add Samba mount entries to `/etc/fstab` and run `mount -a`
+7. Reset both repo remotes to the inline-PAT URL so PostToolUse autopush works
 
 It will prompt for: GitHub PAT, HA long-lived access token, Samba password.
 Save these in your password manager so this is fast.
