@@ -93,11 +93,13 @@ fi
 # Make all our shell scripts executable (idempotent; no output).
 chmod +x "$CONFIG_DIR"/*.sh 2>/dev/null || true
 
-echo
-echo "Done. Now:"
-echo "  1. Exit this Claude Code session (so settings.json gets re-read on next start)."
-echo "  2. Start Claude again. session_start.sh will pull memory, write a marker on exit,"
-echo "     and the FOLLOWING start will print '↻ Synced from <other-machine-id> ...'"
-echo
-echo "Optional: drop a friendly name into ~/.claude/machine-label (one line, e.g."
-echo "'latitude-couch') so the marker shows that instead of 'mid-XXXXXXXX'."
+if [ "$QUIET" = "0" ]; then
+    echo
+    echo "Done. Now:"
+    echo "  1. Exit this Claude Code session (so settings.json gets re-read on next start)."
+    echo "  2. Start Claude again. session_start.sh will pull memory, write a marker on exit,"
+    echo "     and the FOLLOWING start will print '↻ Synced from <other-machine-id> ...'"
+    echo
+    echo "Optional: drop a friendly name into ~/.claude/machine-label (one line, e.g."
+    echo "'latitude-couch') so the marker shows that instead of 'mid-XXXXXXXX'."
+fi
