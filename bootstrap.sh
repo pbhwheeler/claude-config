@@ -22,9 +22,9 @@ This will:
   1. apt install git jq curl cifs-utils npm
   2. Clone ~/.claude-config and the memory repo
   3. Symlink config files into ~/.claude/
-  4. Patch ~/.claude.json with MCP server entries (HA, GitHub, sqlite)
+  4. Patch ~/.claude.json with MCP server entries (HA, GitHub)
   5. Add Samba mount entries to /etc/fstab and mount them
-You'll be prompted for: GitHub PAT, HA long-lived token, Samba password.
+You'll be prompted for: GitHub PAT, HA long-lived token (unique per laptop), Samba password.
 
 INTRO
 read -rp "Proceed? [y/N] " ans
