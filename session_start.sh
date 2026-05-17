@@ -28,6 +28,17 @@ if [ -d /home/em/.claude-config/.git ]; then
     fi
 fi
 
+# 1c) Re-run setup-symlinks.sh --quiet so any new scripts added to
+# ~/.claude-config/ (after the pull above) get symlinked into ~/.claude/
+# automatically. Idempotent and silent if nothing changed; only prints
+# when it backs up or creates a symlink (the rare interesting case).
+# This closes the gap where a new file in the repo would land on disk but
+# not get its ~/.claude/ symlink without manual setup-symlinks.sh re-run.
+if [ -x /home/em/.claude-config/setup-symlinks.sh ]; then
+    /home/em/.claude-config/setup-symlinks.sh --quiet 2>&1 \
+        | grep -v '^>>>' || true
+fi
+
 # 2) HA REST API + bearer-token validity. /api/ returns 200 with valid token.
 if [ -z "$TOKEN" ]; then
     WARN+=("HA token missing from .claude.json")
