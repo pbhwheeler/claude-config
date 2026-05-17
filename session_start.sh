@@ -58,6 +58,12 @@ if [ "${#WARN[@]}" -gt 0 ]; then
     printf '⚠ %s\n' "${WARN[@]}"
 fi
 
+# 4b) Prune ~/.claude/backups/ to keep N most recent. Fire-and-forget;
+# silent on success, surfaces a warning only if the script itself crashes.
+if [ -x /home/em/.claude/prune-backups.sh ]; then
+    /home/em/.claude/prune-backups.sh 2>/dev/null || printf '⚠ prune-backups.sh failed\n'
+fi
+
 # 5) Cross-machine handoff confirmation. The Stop hook (session_end.sh) on the
 # OTHER laptop stamps .last_session with its machine identifier + UTC time, then
 # pushes. We just pulled that marker above (step 1a). If the marker is from a
