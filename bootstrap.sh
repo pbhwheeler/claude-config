@@ -96,11 +96,6 @@ jq --arg ha "$HA_TOKEN" --arg gh "$GH_TOKEN" --arg host "$HA_HOST" '
         type: "http",
         url: "https://api.githubcopilot.com/mcp",
         headers: { Authorization: ("Bearer " + $gh) }
-      },
-      "sqlite": {
-        type: "stdio",
-        command: "npx",
-        args: ["-y", "mcp-sqlite", "/mnt/ha/home-assistant_v2.db"]
       }
     }
 ' "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp" && mv "$CLAUDE_JSON.tmp" "$CLAUDE_JSON"
