@@ -12,7 +12,19 @@ MARKER="$MEMDIR/.last_session"
 
 WARN=()
 
-HOST=$(hostname)
+# Machine identifier — must be unique per laptop. $(hostname) is unreliable
+# when two laptops share the same hostname (the Latitudes do — both report
+# "em-Latitude-6430U"). Priority:
+#   1. ~/.claude/machine-label if present (human-friendly, user-set per machine)
+#   2. /etc/machine-id truncated to 8 hex chars (always unique, persistent)
+#   3. $(hostname) as last resort
+if [ -s /home/em/.claude/machine-label ]; then
+    HOST=$(head -1 /home/em/.claude/machine-label | tr -d '[:space:]')
+elif [ -r /etc/machine-id ]; then
+    HOST="mid-$(cut -c1-8 /etc/machine-id)"
+else
+    HOST=$(hostname)
+fi
 TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # Atomic write so a partial marker never gets pushed if killed mid-write.
