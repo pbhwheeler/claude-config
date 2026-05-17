@@ -33,7 +33,7 @@ else
 fi
 
 echo ">>> Symlinking ~/.claude/{settings.json,statusline.sh,session_start.sh,session_end.sh}"
-mkdir -p "$HOME/.claude"
+mkdir -p "$HOME/.claude" "$HOME/.claude/commands"
 for f in settings.json statusline.sh session_start.sh session_end.sh; do
     target="$HOME/.claude/$f"
     if [ -e "$target" ] && [ ! -L "$target" ]; then
@@ -43,6 +43,23 @@ for f in settings.json statusline.sh session_start.sh session_end.sh; do
     fi
     ln -sf "$CONFIG_DIR/$f" "$target"
 done
+
+# Symlink slash commands per-file so future user-added commands in
+# ~/.claude/commands/ aren't shadowed by a whole-directory symlink.
+echo ">>> Symlinking slash commands from $CONFIG_DIR/commands/"
+if [ -d "$CONFIG_DIR/commands" ]; then
+    for cmd in "$CONFIG_DIR/commands"/*.md; do
+        [ -f "$cmd" ] || continue
+        name=$(basename "$cmd")
+        target="$HOME/.claude/commands/$name"
+        if [ -e "$target" ] && [ ! -L "$target" ]; then
+            backup="$target.bak-$(date +%s)"
+            echo "    backing up existing $name -> $(basename "$backup")"
+            mv "$target" "$backup"
+        fi
+        ln -sf "$cmd" "$target"
+    done
+fi
 
 chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh"
 
