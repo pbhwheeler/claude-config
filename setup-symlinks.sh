@@ -32,9 +32,9 @@ else
     git clone --quiet "$CONFIG_REPO" "$CONFIG_DIR"
 fi
 
-echo ">>> Symlinking ~/.claude/{settings.json,statusline.sh,session_start.sh,session_end.sh}"
+echo ">>> Symlinking ~/.claude/{settings.json,statusline.sh,session_start.sh,session_end.sh,prune-backups.sh}"
 mkdir -p "$HOME/.claude" "$HOME/.claude/commands"
-for f in settings.json statusline.sh session_start.sh session_end.sh; do
+for f in settings.json statusline.sh session_start.sh session_end.sh prune-backups.sh; do
     target="$HOME/.claude/$f"
     if [ -e "$target" ] && [ ! -L "$target" ]; then
         backup="$target.bak-$(date +%s)"
