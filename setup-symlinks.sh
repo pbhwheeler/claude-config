@@ -61,7 +61,7 @@ if [ -d "$CONFIG_DIR/commands" ]; then
     done
 fi
 
-chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh"
+chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh" "$CONFIG_DIR/prune-backups.sh"
 
 echo
 echo "Done. Now:"
