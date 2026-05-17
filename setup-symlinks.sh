@@ -24,44 +24,74 @@ set -euo pipefail
 CONFIG_DIR="$HOME/.claude-config"
 CONFIG_REPO="https://github.com/pbhwheeler/claude-config.git"
 
-echo ">>> Cloning $CONFIG_REPO to $CONFIG_DIR (if missing)"
+# Quiet mode: suppress all output unless an actual change is made.
+# session_start.sh calls us with --quiet on every session, idempotently;
+# user-triggered runs (e.g. via `bash <(curl ...)`) get the verbose form.
+QUIET=0
+[ "${1:-}" = "--quiet" ] && QUIET=1
+say() { [ "$QUIET" = "1" ] || echo "$@"; }
+notice() { echo "$@"; }  # always prints — used for actual change events
+
 if [ -d "$CONFIG_DIR/.git" ]; then
-    echo "    already present — pulling latest"
-    git -C "$CONFIG_DIR" pull --ff-only --quiet
+    say ">>> $CONFIG_DIR already present"
 else
+    notice ">>> Cloning $CONFIG_REPO to $CONFIG_DIR"
     git clone --quiet "$CONFIG_REPO" "$CONFIG_DIR"
 fi
 
-echo ">>> Symlinking ~/.claude/{settings.json,statusline.sh,session_start.sh,session_end.sh,prune-backups.sh}"
+say ">>> Refreshing symlinks into ~/.claude/"
 mkdir -p "$HOME/.claude" "$HOME/.claude/commands"
-for f in settings.json statusline.sh session_start.sh session_end.sh prune-backups.sh; do
-    target="$HOME/.claude/$f"
-    if [ -e "$target" ] && [ ! -L "$target" ]; then
-        backup="$target.bak-$(date +%s)"
-        echo "    backing up existing $f -> $(basename "$backup")"
-        mv "$target" "$backup"
-    fi
-    ln -sf "$CONFIG_DIR/$f" "$target"
+
+# Auto-discover everything to symlink: settings.json + every executable .sh
+# at the repo root. Future scripts you add to ~/.claude-config/ get picked up
+# without needing to edit this loop.
+TO_LINK=(settings.json)
+for sh in "$CONFIG_DIR"/*.sh; do
+    [ -f "$sh" ] || continue
+    case "$(basename "$sh")" in
+        bootstrap.sh|setup-symlinks.sh) continue ;;  # internal — not user-facing
+    esac
+    TO_LINK+=("$(basename "$sh")")
 done
 
-# Symlink slash commands per-file so future user-added commands in
-# ~/.claude/commands/ aren't shadowed by a whole-directory symlink.
-echo ">>> Symlinking slash commands from $CONFIG_DIR/commands/"
+for f in "${TO_LINK[@]}"; do
+    target="$HOME/.claude/$f"
+    src="$CONFIG_DIR/$f"
+    # If the target is a symlink already pointing at the right place, skip silently.
+    if [ -L "$target" ] && [ "$(readlink "$target")" = "$src" ]; then
+        continue
+    fi
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+        backup="$target.bak-$(date +%s)"
+        notice "    backing up existing $f -> $(basename "$backup")"
+        mv "$target" "$backup"
+    fi
+    notice "    linking $f -> $src"
+    ln -sf "$src" "$target"
+done
+
+# Per-file slash command symlinks (preserves user-added commands in
+# ~/.claude/commands/ that aren't part of the synced set).
 if [ -d "$CONFIG_DIR/commands" ]; then
     for cmd in "$CONFIG_DIR/commands"/*.md; do
         [ -f "$cmd" ] || continue
         name=$(basename "$cmd")
         target="$HOME/.claude/commands/$name"
+        if [ -L "$target" ] && [ "$(readlink "$target")" = "$cmd" ]; then
+            continue
+        fi
         if [ -e "$target" ] && [ ! -L "$target" ]; then
             backup="$target.bak-$(date +%s)"
-            echo "    backing up existing $name -> $(basename "$backup")"
+            notice "    backing up existing commands/$name -> commands/$(basename "$backup")"
             mv "$target" "$backup"
         fi
+        notice "    linking commands/$name"
         ln -sf "$cmd" "$target"
     done
 fi
 
-chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh" "$CONFIG_DIR/prune-backups.sh"
+# Make all our shell scripts executable (idempotent; no output).
+chmod +x "$CONFIG_DIR"/*.sh 2>/dev/null || true
 
 echo
 echo "Done. Now:"
