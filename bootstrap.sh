@@ -56,7 +56,7 @@ fi
 # 5. Symlink config files into ~/.claude/
 echo ">>> Symlinking config files into ~/.claude/..."
 mkdir -p "$HOME/.claude"
-for f in settings.json statusline.sh session_start.sh; do
+for f in settings.json statusline.sh session_start.sh session_end.sh; do
     target="$HOME/.claude/$f"
     if [ -e "$target" ] && [ ! -L "$target" ]; then
         echo "    backing up existing $f -> $f.pre-bootstrap"
@@ -64,7 +64,7 @@ for f in settings.json statusline.sh session_start.sh; do
     fi
     ln -sf "$CONFIG_DIR/$f" "$target"
 done
-chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh"
+chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh"
 
 # 6. Patch ~/.claude.json with MCP servers under the /home/em/development project
 CLAUDE_JSON="$HOME/.claude.json"
