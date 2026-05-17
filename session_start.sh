@@ -57,3 +57,17 @@ done
 if [ "${#WARN[@]}" -gt 0 ]; then
     printf '⚠ %s\n' "${WARN[@]}"
 fi
+
+# 5) Cross-machine handoff confirmation. The Stop hook (session_end.sh) on the
+# OTHER laptop stamps .last_session with its hostname + UTC time, then pushes.
+# We just pulled that marker above (step 1a). If the marker is from a different
+# host than this one, announce it — that's positive proof memory round-tripped
+# laptop → GitHub → laptop. Same-host markers are silent (no noise on restart).
+MARKER=/home/em/.claude/projects/-home-em-development/memory/.last_session
+if [ -f "$MARKER" ]; then
+    LAST_HOST=$(sed -n 1p "$MARKER" 2>/dev/null)
+    LAST_TS=$(sed -n 2p "$MARKER" 2>/dev/null)
+    if [ -n "$LAST_HOST" ] && [ "$LAST_HOST" != "$(hostname)" ]; then
+        printf '↻ Synced from %s (last session ended %s)\n' "$LAST_HOST" "$LAST_TS"
+    fi
+fi
