@@ -59,15 +59,27 @@ if [ "${#WARN[@]}" -gt 0 ]; then
 fi
 
 # 5) Cross-machine handoff confirmation. The Stop hook (session_end.sh) on the
-# OTHER laptop stamps .last_session with its hostname + UTC time, then pushes.
-# We just pulled that marker above (step 1a). If the marker is from a different
-# host than this one, announce it — that's positive proof memory round-tripped
-# laptop → GitHub → laptop. Same-host markers are silent (no noise on restart).
+# OTHER laptop stamps .last_session with its machine identifier + UTC time, then
+# pushes. We just pulled that marker above (step 1a). If the marker is from a
+# different machine than this one, announce it — positive proof memory
+# round-tripped laptop → GitHub → laptop. Same-machine markers are silent.
+#
+# Machine identifier must match what session_end.sh writes — same fallback chain:
+# ~/.claude/machine-label > mid-<8-hex of /etc/machine-id> > $(hostname). Don't
+# use bare $(hostname) here — the two Latitudes both report "em-Latitude-6430U"
+# and the comparison would always be silent.
+if [ -s /home/em/.claude/machine-label ]; then
+    THIS_HOST=$(head -1 /home/em/.claude/machine-label | tr -d '[:space:]')
+elif [ -r /etc/machine-id ]; then
+    THIS_HOST="mid-$(cut -c1-8 /etc/machine-id)"
+else
+    THIS_HOST=$(hostname)
+fi
 MARKER=/home/em/.claude/projects/-home-em-development/memory/.last_session
 if [ -f "$MARKER" ]; then
     LAST_HOST=$(sed -n 1p "$MARKER" 2>/dev/null)
     LAST_TS=$(sed -n 2p "$MARKER" 2>/dev/null)
-    if [ -n "$LAST_HOST" ] && [ "$LAST_HOST" != "$(hostname)" ]; then
+    if [ -n "$LAST_HOST" ] && [ "$LAST_HOST" != "$THIS_HOST" ]; then
         printf '↻ Synced from %s (last session ended %s)\n' "$LAST_HOST" "$LAST_TS"
     fi
 fi
