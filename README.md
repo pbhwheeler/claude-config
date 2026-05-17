@@ -51,6 +51,7 @@ other machines pulls them. Same pattern as `claude-memory`.
 
 ## Notes
 
-- This repo is private. Tokens are NOT stored here — only in `~/.claude.json`
-  and `/etc/fstab` on each machine.
+- This repo is **public**; only `claude-memory` is private. Tokens are NOT stored in
+  either repo — they live only in `~/.claude.json` and `/etc/fstab` on each machine
+  (both gitignored / system files).
 - The bootstrap one-liner uses `bash <(...)` not `... | bash` so prompts work.
