@@ -30,6 +30,19 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/em/.claude/session_end.sh",
+            "timeout": 10,
+            "shell": "bash",
+            "statusMessage": "Stamping cross-machine session marker..."
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
