@@ -77,7 +77,7 @@ if [ -d "$CONFIG_DIR/commands" ]; then
         ln -sf "$cmd" "$target"
     done
 fi
-chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh"
+chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh" "$CONFIG_DIR/prune-backups.sh"
 
 # 6. Patch ~/.claude.json with MCP servers under the /home/em/development project
 CLAUDE_JSON="$HOME/.claude.json"
