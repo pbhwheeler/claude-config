@@ -24,7 +24,10 @@ This will:
   3. Symlink config files into ~/.claude/
   4. Patch ~/.claude.json with MCP server entries (HA, GitHub)
   5. Add Samba mount entries to /etc/fstab and mount them
-You'll be prompted for: GitHub PAT, HA long-lived token (unique per laptop), Samba password.
+  6. (optional) Wire up the daily activity report — IMAP-driven daily
+     email summary of this laptop's git/memory activity to StartMail
+You'll be prompted for: GitHub PAT, HA long-lived token (unique per laptop),
+Samba password, and optionally a StartMail app password for the daily report.
 
 INTRO
 read -rp "Proceed? [y/N] " ans
