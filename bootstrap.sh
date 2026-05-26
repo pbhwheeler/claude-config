@@ -127,6 +127,25 @@ sudo mount -a || echo "    (some mounts failed — check 'mount -a' manually)"
 git -C "$MEMORY_DIR" remote set-url origin "$(gh_url claude-memory)" || true
 git -C "$CONFIG_DIR" remote set-url origin "$(gh_url claude-config)" || true
 
+# 9. Optional: daily activity report (see reference_daily_report.md).
+#    The setup script is interactive — prompts for the StartMail app password
+#    silently and writes ~/.config/daily-report/imap.cfg mode 600, then
+#    installs the 23:59 crontab line. Each laptop reports independently
+#    (the report's "Host:" header distinguishes them). Skip on temporary
+#    or shared machines.
+DAILY_REPORT_SETUP="$CONFIG_DIR/scripts/setup_daily_report.sh"
+if [ -x "$DAILY_REPORT_SETUP" ]; then
+    echo
+    read -rp "Set up daily activity reports (StartMail IMAP)? [y/N] " ans_dr
+    if [[ "$ans_dr" =~ ^[Yy]$ ]]; then
+        "$DAILY_REPORT_SETUP"
+    else
+        echo "    Skipped. To enable later, run:  $DAILY_REPORT_SETUP"
+    fi
+else
+    echo "    (daily report scripts not found at $DAILY_REPORT_SETUP — skipping)"
+fi
+
 cat <<EOF
 
 === Bootstrap complete ===
