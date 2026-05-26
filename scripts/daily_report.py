@@ -122,7 +122,7 @@ def new_memory_files(repo: str, since_iso: str) -> list[str]:
 
 def build_report(now: dt.datetime) -> tuple[str, str]:
     """Returns (subject, body)."""
-    # "Since midnight local" — the cron fires at 22:00 local so this captures
+    # "Since midnight local" — the cron fires at 23:59 local so this captures
     # everything since this morning.
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
     since_iso = midnight.isoformat(sep=" ")
