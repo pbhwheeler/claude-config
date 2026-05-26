@@ -269,16 +269,21 @@ def main() -> int:
                     help="print report to stdout, do not send")
     args = ap.parse_args()
 
-    cfg = parse_config(CONFIG_PATH)
     now = dt.datetime.now()
     subject, body = build_report(now)
 
-    if args.test or args.dry_run:
+    # --dry-run doesn't need IMAP creds; the user might be previewing before
+    # ever running setup_daily_report.sh.
+    if args.dry_run:
+        print(f"Subject: {subject}\n\n{body}")
+        print("\n---\ndry-run: not sending")
+        return 0
+
+    cfg = parse_config(CONFIG_PATH)
+
+    if args.test:
         print(f"Subject: {subject}\n\n{body}")
         print("\n---")
-        if args.dry_run:
-            print("dry-run: not sending")
-            return 0
 
     raw = build_message(cfg, subject, body, now)
     try:
