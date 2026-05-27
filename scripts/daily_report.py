@@ -159,8 +159,11 @@ def new_memory_files(repo: str, since_iso: str) -> list[str]:
     return sorted(set(added))
 
 
-def build_report(now: dt.datetime) -> tuple[str, str]:
-    """Returns (subject, body)."""
+def build_report(now: dt.datetime) -> tuple[str, str, list[Path]]:
+    """Returns (subject, body, consumed_note_paths). The note paths are the
+    pending notes whose content went into `body` — caller moves them to
+    NOTES_SENT only after a successful send so a failed run can be retried
+    without losing the note."""
     # "Since midnight local" — the cron fires at 23:59 local so this captures
     # everything since this morning.
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
