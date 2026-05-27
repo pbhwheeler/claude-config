@@ -109,6 +109,38 @@ def git_log_since(repo: str, since_iso: str) -> str:
     return out.rstrip()
 
 
+def gather_notes() -> list[tuple[Path, str]]:
+    """Find ad-hoc notes queued for inclusion. Returns [(path, content), ...]
+    sorted by filename so a deterministic ordering can be enforced by naming
+    (e.g. "01-foo.md" before "02-bar.md"). Skips files starting with a dot."""
+    if not NOTES_PENDING.exists():
+        return []
+    out = []
+    for p in sorted(NOTES_PENDING.iterdir()):
+        if not p.is_file() or p.name.startswith("."):
+            continue
+        if p.suffix.lower() not in (".md", ".markdown", ".txt"):
+            continue
+        try:
+            out.append((p, p.read_text(encoding="utf-8")))
+        except OSError as e:
+            out.append((p, f"_(error reading {p.name}: {e})_"))
+    return out
+
+
+def archive_notes(consumed: list[Path], now: dt.datetime) -> None:
+    """Move successfully-included note files into NOTES_SENT/<YYYY-MM-DD>/."""
+    if not consumed:
+        return
+    dest = NOTES_SENT / now.strftime("%Y-%m-%d")
+    dest.mkdir(parents=True, exist_ok=True)
+    for p in consumed:
+        try:
+            os.replace(p, dest / p.name)
+        except OSError as e:
+            print(f"  warning: could not archive {p}: {e}", file=sys.stderr)
+
+
 def new_memory_files(repo: str, since_iso: str) -> list[str]:
     """List paths of memory .md files first-introduced since the cutoff.
     For the claude-memory repo only — uses --diff-filter=A to find adds."""
