@@ -326,12 +326,15 @@ def main() -> int:
     args = ap.parse_args()
 
     now = dt.datetime.now()
-    subject, body = build_report(now)
+    subject, body, consumed_notes = build_report(now)
 
     # --dry-run doesn't need IMAP creds; the user might be previewing before
-    # ever running setup_daily_report.sh.
+    # ever running setup_daily_report.sh. Notes are NOT archived on dry-run —
+    # they stay pending so the next real send still picks them up.
     if args.dry_run:
         print(f"Subject: {subject}\n\n{body}")
+        if consumed_notes:
+            print(f"\n(dry-run: {len(consumed_notes)} note(s) WOULD be archived after a real send)")
         print("\n---\ndry-run: not sending")
         return 0
 
@@ -349,6 +352,14 @@ def main() -> int:
 
     for folder, status in results.items():
         print(f"  {folder}: {status}")
+
+    # Only archive notes after the send succeeded — a failure should leave
+    # them pending so the next attempt picks them up rather than silently
+    # dropping content.
+    archive_notes(consumed_notes, now)
+    if consumed_notes:
+        print(f"  archived {len(consumed_notes)} note(s) → {NOTES_SENT / now.strftime('%Y-%m-%d')}")
+
     return 0
 
 
