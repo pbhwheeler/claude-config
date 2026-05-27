@@ -34,6 +34,13 @@ from pathlib import Path
 CONFIG_PATH = Path("~/.config/daily-report/imap.cfg").expanduser()
 LOG_PATH = Path("~/.local/share/daily-report.log").expanduser()
 
+# Ad-hoc notes — drop a markdown file into NOTES_PENDING and tonight's report
+# includes its contents verbatim under a "Notes" section. After a successful
+# send, consumed files move to NOTES_SENT (date-stamped subdir) so the same
+# note doesn't reappear in tomorrow's report.
+NOTES_PENDING = Path("~/.local/share/daily-report/notes/pending").expanduser()
+NOTES_SENT    = Path("~/.local/share/daily-report/notes/sent").expanduser()
+
 # Repos to inspect. (path, friendly-name, kind)
 # kind="memory" gets special treatment (lists new files, not just commit msgs).
 REPOS = [
