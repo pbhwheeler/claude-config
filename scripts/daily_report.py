@@ -55,6 +55,71 @@ REPOS = [
 # to the config for future runs.
 SENT_FOLDER_CANDIDATES = ["Sent", "Sent Messages", "Sent Items", "INBOX.Sent"]
 
+# Security-hardening project tracker. The report includes a live progress block
+# parsed from the checklist between these markers in the memory file, and drops
+# it automatically once every item is checked (the "until complete" stop).
+SECURITY_STATUS_FILE = Path(
+    "/home/em/.claude/projects/-home-em-development/memory/project_security_hardening.md"
+)
+SEC_START = "<!-- SEC-STATUS:START -->"
+SEC_END = "<!-- SEC-STATUS:END -->"
+
+
+def security_hardening_section() -> str:
+    """Progress block for the active security-hardening project. Parses the
+    checklist between the SEC-STATUS markers, tallies done/total per phase
+    (a phase is an "### " heading), and renders a compact summary plus the
+    next few open items. Returns "" if the file/markers are missing or every
+    item is complete, so the report silently stops carrying it once done."""
+    try:
+        text = SECURITY_STATUS_FILE.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    if SEC_START not in text or SEC_END not in text:
+        return ""
+    block = text.split(SEC_START, 1)[1].split(SEC_END, 1)[0]
+
+    phases: list[list] = []  # [title, done, total]
+    for line in block.splitlines():
+        s = line.strip()
+        if s.startswith("### "):
+            phases.append([s[4:].strip(), 0, 0])
+        elif s.startswith("- [") and phases:
+            phases[-1][2] += 1
+            if s[:5].lower() == "- [x]":
+                phases[-1][1] += 1
+
+    total = sum(p[2] for p in phases)
+    done = sum(p[1] for p in phases)
+    if total == 0 or done >= total:
+        return ""
+
+    pct = round(100 * done / total)
+    out = ["## Security hardening progress\n",
+           f"\n**{done}/{total} complete ({pct}%)** — full plan in "
+           "`project_security_hardening.md`\n\n"]
+    for title, d, t in phases:
+        mark = "[x]" if t and d >= t else ("[~]" if d else "[ ]")
+        out.append(f"- {mark} {title}: {d}/{t}\n")
+
+    nxt = []
+    for line in block.splitlines():
+        s = line.strip()
+        if s.startswith("- [ ]"):
+            label = s[5:].strip()
+            if "**" in label:
+                parts = label.split("**")
+                if len(parts) >= 3:
+                    label = parts[1]
+            nxt.append(label)
+        if len(nxt) >= 3:
+            break
+    if nxt:
+        out.append("\n**Next up:**\n")
+        out.extend(f"- {n}\n" for n in nxt)
+
+    return "".join(out) + "\n"
+
 
 def parse_config(path: Path) -> dict[str, str]:
     """Read key=value file. Lines starting with # are comments. Values may be
