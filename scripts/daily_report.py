@@ -128,7 +128,7 @@ def hvac_overnight_wifi_check(now: dt.datetime) -> str:
             if not series:
                 continue
             eid = series[0].get("entity_id", "")
-            for s in series:
+            for s in series[1:]:  # skip series[0] = HA's start-of-window snapshot
                 raw = s.get("last_changed") or s.get("last_updated")
                 try:
                     ts = dt.datetime.fromisoformat(raw)
