@@ -64,6 +64,100 @@ SECURITY_STATUS_FILE = Path(
 SEC_START = "<!-- SEC-STATUS:START -->"
 SEC_END = "<!-- SEC-STATUS:END -->"
 
+# ── Temporary diagnostic (2026-05-28): overnight HVAC relay-board Wi-Fi event ──
+# The board drops its link in a recurring ~04:00-04:45 network blip. It now
+# exposes an `uptime` sensor, so a reboot (uptime resets ~0) is distinguishable
+# from a pure Wi-Fi drop (uptime stays continuous). This reads that morning's
+# recorder window and reports the verdict in the nightly email. Fully defensive:
+# any failure returns "" so the email is never affected. REMOVE once the ~4am
+# blip's cause (power vs network/AP) is confirmed.
+HA_BASE = "http://192.168.1.41:8123"
+
+
+def _ha_token() -> str:
+    """Pull the HA long-lived token out of the local (gitignored) .claude.json.
+    Returns "" if unavailable. No secret is stored in this repo."""
+    import json, re
+    try:
+        data = json.loads(Path("~/.claude.json").expanduser().read_text())
+    except Exception:
+        return ""
+    found = []
+    def walk(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if isinstance(v, str) and "eyJ" in v:
+                    found.append(v)
+                walk(v)
+        elif isinstance(o, list):
+            for x in o:
+                walk(x)
+    walk(data)
+    for h in found:
+        m = re.search(r"(eyJ[A-Za-z0-9_.\-]+)", h)
+        if m:
+            return m.group(1)
+    return ""
+
+
+def hvac_overnight_wifi_check(now: dt.datetime) -> str:
+    """Did the HVAC relay board drop its link overnight (03:30-05:30), and if so
+    did it reboot (uptime reset) or just lose Wi-Fi (uptime continuous)? Reads
+    the HA recorder. Fully defensive — returns "" on any problem. Temporary."""
+    try:
+        import json, urllib.request, urllib.parse
+        tok = _ha_token()
+        if not tok:
+            return ""
+        local = now.astimezone()
+        start = local.replace(hour=3, minute=30, second=0, microsecond=0)
+        end = local.replace(hour=5, minute=30, second=0, microsecond=0)
+        if local < end:
+            return ""  # this morning's window hasn't fully elapsed yet
+        q = urllib.parse.urlencode({
+            "end_time": end.isoformat(),
+            "filter_entity_id": "input_text.hvac_waveshare_last_disconnect,sensor.hvac_relay_board_uptime",
+            "minimal_response": "",
+        })
+        url = f"{HA_BASE}/api/history/period/{urllib.parse.quote(start.isoformat())}?{q}"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {tok}"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.load(resp)
+        disc_times, uptimes = [], []
+        for series in data:
+            if not series:
+                continue
+            eid = series[0].get("entity_id", "")
+            for s in series:
+                raw = s.get("last_changed") or s.get("last_updated")
+                try:
+                    ts = dt.datetime.fromisoformat(raw)
+                except Exception:
+                    continue
+                if not (start <= ts <= end):
+                    continue
+                if eid.endswith("last_disconnect"):
+                    disc_times.append(ts)
+                elif eid.endswith("uptime"):
+                    try:
+                        uptimes.append(float(s["state"]))
+                    except (ValueError, TypeError, KeyError):
+                        pass
+        if not disc_times:
+            return "## HVAC board overnight Wi-Fi check\n\n_No link drop 03:30-05:30._\n\n"
+        if not uptimes:
+            verdict = "uptime telemetry not available for this window yet (sensor added 2026-05-28); conclusive from the next event onward"
+        elif any(uptimes[i] < uptimes[i - 1] - 60 for i in range(1, len(uptimes))):
+            verdict = "**REBOOTED** — uptime reset, so likely a power event"
+        else:
+            verdict = "**Wi-Fi drop only** — uptime stayed continuous, so the board kept power (network/AP event)"
+        times = ", ".join(t.astimezone(local.tzinfo).strftime("%H:%M:%S") for t in disc_times)
+        return ("## HVAC board overnight Wi-Fi check\n\n"
+                f"- Link drop(s) 03:30-05:30: {len(disc_times)} ({times})\n"
+                f"- Verdict: {verdict}\n\n")
+    except Exception:
+        return ""
+
 
 def security_hardening_section() -> str:
     """Progress block for the active security-hardening project. Parses the
