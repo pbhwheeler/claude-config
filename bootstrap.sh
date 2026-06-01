@@ -7,14 +7,15 @@
 
 set -euo pipefail
 
-CONFIG_REPO_URL="https://github.com/pbhwheeler/claude-config.git"
-MEMORY_REPO_URL="https://github.com/pbhwheeler/claude-memory.git"
 CONFIG_DIR="$HOME/.claude-config"
 MEMORY_DIR="$HOME/.claude/projects/-home-em-development/memory"
 HA_HOST="192.168.1.41"
 
-# Resolve git URLs with token interpolation (used after we have GH_TOKEN).
-gh_url() { local repo="$1"; echo "https://${GH_TOKEN}@github.com/pbhwheeler/${repo}.git"; }
+# Git remotes use SSH (durable; matches MEMORY.md auth doc). PATs in URLs have
+# previously gone silently dead (the 2026-06-01 incident: PAT revoked, push
+# failed, hook kept committing locally — invisible until a manual push). SSH
+# keys don't expire and the failure mode is loud.
+repo_url() { local repo="$1"; echo "git@github.com:pbhwheeler/${repo}.git"; }
 
 cat <<'INTRO'
 === Claude Code dev machine bootstrap ===
