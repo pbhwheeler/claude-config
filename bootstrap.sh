@@ -141,7 +141,7 @@ sudo mount -a || echo "    (some mounts failed — check 'mount -a' manually)"
 git -C "$MEMORY_DIR" remote set-url origin "$(repo_url claude-memory)" || true
 git -C "$CONFIG_DIR" remote set-url origin "$(repo_url claude-config)" || true
 
-# 9. Optional: daily activity report (see reference_daily_report.md).
+# 10. Optional: daily activity report (see reference_daily_report.md).
 #    The setup script is interactive — prompts for the StartMail app password
 #    silently and writes ~/.config/daily-report/imap.cfg mode 600, then
 #    installs the 23:59 crontab line. Each laptop reports independently
