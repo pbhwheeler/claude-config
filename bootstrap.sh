@@ -69,7 +69,7 @@ if [ ! -d "$MEMORY_DIR/.git" ]; then
     git clone "$(repo_url claude-memory)" "$MEMORY_DIR"
 fi
 
-# 5. Symlink config files into ~/.claude/
+# 6. Symlink config files into ~/.claude/
 echo ">>> Symlinking config files into ~/.claude/..."
 mkdir -p "$HOME/.claude" "$HOME/.claude/commands"
 for f in settings.json statusline.sh session_start.sh session_end.sh prune-backups.sh; do
