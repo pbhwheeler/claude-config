@@ -136,9 +136,10 @@ add_fstab media        /mnt/ha_media
 sudo systemctl daemon-reload
 sudo mount -a || echo "    (some mounts failed — check 'mount -a' manually)"
 
-# 8. Set memory repo's remote to use the GH_TOKEN (so PostToolUse push works)
-git -C "$MEMORY_DIR" remote set-url origin "$(gh_url claude-memory)" || true
-git -C "$CONFIG_DIR" remote set-url origin "$(gh_url claude-config)" || true
+# 9. Normalize both repo remotes to SSH (idempotent — repairs prior installs
+# that may have inherited HTTPS+PAT URLs from older bootstrap revisions).
+git -C "$MEMORY_DIR" remote set-url origin "$(repo_url claude-memory)" || true
+git -C "$CONFIG_DIR" remote set-url origin "$(repo_url claude-config)" || true
 
 # 9. Optional: daily activity report (see reference_daily_report.md).
 #    The setup script is interactive — prompts for the StartMail app password
