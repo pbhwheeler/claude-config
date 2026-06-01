@@ -39,22 +39,34 @@ echo ">>> Installing apt packages..."
 sudo apt update -qq
 sudo apt install -y git jq curl cifs-utils samba-client npm
 
-# 2. Tokens — prompt up front so the rest can run unattended
-read -rp "GitHub PAT (repo scope, for MCP + repo clones): " GH_TOKEN
+# 2. SSH precheck — git operations on the private memory repo and durable
+# pushes both require an SSH key registered with GitHub. Bail loudly if not.
+echo ">>> Verifying SSH access to GitHub..."
+if ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+    echo "    OK: SSH auth as pbhwheeler works."
+else
+    echo "    FAIL: ssh -T git@github.com did not return 'successfully authenticated'."
+    echo "    Add this machine's SSH key to https://github.com/settings/keys first."
+    echo "    Quick path: ssh-keygen -t ed25519, then add the .pub to GitHub, then re-run."
+    exit 1
+fi
+
+# 3. Tokens — prompt up front so the rest can run unattended
+read -rp "GitHub PAT (repo scope, for MCP server only — NOT for git): " GH_TOKEN
 read -rp "Home Assistant long-lived access token: " HA_TOKEN
 read -rsp "Samba password for HA share: " SAMBA_PASS; echo
 
-# 3. Clone or update config repo (this script's home)
+# 4. Clone or update config repo (this script's home)
 if [ ! -d "$CONFIG_DIR/.git" ]; then
-    echo ">>> Cloning config repo..."
-    git clone "$(gh_url claude-config)" "$CONFIG_DIR"
+    echo ">>> Cloning config repo via SSH..."
+    git clone "$(repo_url claude-config)" "$CONFIG_DIR"
 fi
 
-# 4. Clone or update memory repo
+# 5. Clone or update memory repo
 if [ ! -d "$MEMORY_DIR/.git" ]; then
-    echo ">>> Cloning memory repo..."
+    echo ">>> Cloning memory repo via SSH..."
     mkdir -p "$(dirname "$MEMORY_DIR")"
-    git clone "$(gh_url claude-memory)" "$MEMORY_DIR"
+    git clone "$(repo_url claude-memory)" "$MEMORY_DIR"
 fi
 
 # 5. Symlink config files into ~/.claude/
