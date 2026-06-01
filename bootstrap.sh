@@ -95,7 +95,7 @@ if [ -d "$CONFIG_DIR/commands" ]; then
 fi
 chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh" "$CONFIG_DIR/prune-backups.sh"
 
-# 6. Patch ~/.claude.json with MCP servers under the /home/em/development project
+# 7. Patch ~/.claude.json with MCP servers under the /home/em/development project
 CLAUDE_JSON="$HOME/.claude.json"
 [ -f "$CLAUDE_JSON" ] || echo "{}" > "$CLAUDE_JSON"
 echo ">>> Writing MCP server entries to $CLAUDE_JSON..."
