@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); case \"$f\" in /home/em/.claude/projects/-home-em-development/memory/*) git -C /home/em/.claude/projects/-home-em-development/memory add -A && git -C /home/em/.claude/projects/-home-em-development/memory commit -m \"update\" && git -C /home/em/.claude/projects/-home-em-development/memory push 2>/dev/null ;; esac; true",
+            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); case \"$f\" in /home/em/.claude/projects/-home-em-development/memory/*) git -C /home/em/.claude/projects/-home-em-development/memory add -A && git -C /home/em/.claude/projects/-home-em-development/memory commit -m \"update\"; git -C /home/em/.claude/projects/-home-em-development/memory push 2>>/home/em/.claude/sync.log || echo \"[memory push FAILED $(date -Is)]\" >>/home/em/.claude/sync.log ;; esac; true",
             "shell": "bash",
             "statusMessage": "Syncing memory to GitHub..."
           },
