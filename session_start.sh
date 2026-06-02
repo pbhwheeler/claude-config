@@ -65,6 +65,23 @@ for mp in /mnt/ha /mnt/ha_addons /mnt/ha_media; do
     fi
 done
 
+# 4c) Unpushed-commit guard. The PostToolUse hook pushes memory/config to
+# GitHub after every edit; if a push silently fails (e.g. the SSH key isn't
+# loaded into the agent), commits pile up locally and the backup rots
+# unnoticed — the exact failure that hid 13 unpushed memory commits in 2026.
+# After the FF-only pulls above, any local lead over upstream means a prior
+# push didn't land. Surface it loudly.
+for repo in \
+    /home/em/.claude/projects/-home-em-development/memory \
+    /home/em/.claude-config; do
+    if [ -d "$repo/.git" ]; then
+        ahead=$(git -C "$repo" rev-list --count @{u}..HEAD 2>/dev/null)
+        if [ -n "$ahead" ] && [ "$ahead" -gt 0 ] 2>/dev/null; then
+            WARN+=("$(basename "$repo"): $ahead unpushed commit(s) — SSH push failing?")
+        fi
+    fi
+done
+
 if [ "${#WARN[@]}" -gt 0 ]; then
     printf '⚠ %s\n' "${WARN[@]}"
 fi
