@@ -12,7 +12,7 @@
           },
           {
             "type": "command",
-            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); case \"$f\" in /home/em/.claude-config/*|/home/em/.claude/settings.json|/home/em/.claude/statusline.sh|/home/em/.claude/session_start.sh) git -C /home/em/.claude-config add -A && git -C /home/em/.claude-config commit -m \"update\" && git -C /home/em/.claude-config push 2>/dev/null ;; esac; true",
+            "command": "f=$(jq -r '.tool_input.file_path // \"\"'); case \"$f\" in /home/em/.claude-config/*|/home/em/.claude/settings.json|/home/em/.claude/statusline.sh|/home/em/.claude/session_start.sh) git -C /home/em/.claude-config add -A && git -C /home/em/.claude-config commit -m \"update\"; git -C /home/em/.claude-config push 2>>/home/em/.claude/sync.log || echo \"[config push FAILED $(date -Is)]\" >>/home/em/.claude/sync.log ;; esac; true",
             "shell": "bash",
             "statusMessage": "Syncing config to GitHub..."
           }
