@@ -20,7 +20,7 @@ repo_url() { local repo="$1"; echo "git@github.com:pbhwheeler/${repo}.git"; }
 cat <<'INTRO'
 === Claude Code dev machine bootstrap ===
 This will:
-  1. apt install git jq curl cifs-utils npm
+  1. apt install git jq curl cifs-utils npm libsecret-tools
   2. Verify SSH access to GitHub (needed before private-repo clones)
   3. Clone ~/.claude-config and the memory repo via SSH
   4. Symlink config files into ~/.claude/
