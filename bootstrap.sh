@@ -165,7 +165,7 @@ add_fstab media        /mnt/ha_media
 sudo systemctl daemon-reload
 sudo mount -a || echo "    (some mounts failed — check 'mount -a' manually)"
 
-# 9. Normalize both repo remotes to SSH (idempotent — repairs prior installs
+# 10. Normalize both repo remotes to SSH (idempotent — repairs prior installs
 # that may have inherited HTTPS+PAT URLs from older bootstrap revisions).
 git -C "$MEMORY_DIR" remote set-url origin "$(repo_url claude-memory)" || true
 git -C "$CONFIG_DIR" remote set-url origin "$(repo_url claude-config)" || true
