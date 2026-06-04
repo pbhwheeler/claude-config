@@ -37,8 +37,8 @@
           {
             "type": "command",
             "command": "/home/em/.claude/session_end.sh",
-            "timeout": 10,
             "shell": "bash",
+            "timeout": 10,
             "statusMessage": "Stamping cross-machine session marker..."
           }
         ]
