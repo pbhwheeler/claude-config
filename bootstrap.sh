@@ -101,7 +101,30 @@ if [ -d "$CONFIG_DIR/commands" ]; then
 fi
 chmod +x "$CONFIG_DIR/statusline.sh" "$CONFIG_DIR/session_start.sh" "$CONFIG_DIR/session_end.sh" "$CONFIG_DIR/prune-backups.sh"
 
-# 7. Patch ~/.claude.json with MCP servers under the /home/em/development project
+# 7. SSH-key auto-load user service. The passphrased id_ed25519 must load into
+# the agent non-interactively at login, or the memory/config auto-push and
+# session-start pull hooks pop a GUI passphrase prompt (the 2026-06-03 incident).
+# The unit runs scripts/ssh-add-when-ready.sh (waits for the keyring agent
+# socket — it's created late in graphical login — then ssh-add), which pulls the
+# passphrase from the GNOME login keyring via scripts/ssh-askpass-keyring.sh.
+# We deploy + enable the unit here; the per-machine SECRET (the passphrase in
+# the keyring) is a manual step, printed in the final summary — it can't live in
+# this public repo.
+echo ">>> Installing ssh-add-keyring user service..."
+mkdir -p "$HOME/.config/systemd/user"
+cp "$CONFIG_DIR/systemd/ssh-add-keyring.service" "$HOME/.config/systemd/user/ssh-add-keyring.service"
+if systemctl --user daemon-reload 2>/dev/null; then
+    if systemctl --user enable ssh-add-keyring.service 2>/dev/null; then
+        echo "    enabled — loads ~/.ssh/id_ed25519 into the agent at each login"
+    else
+        echo "    WARN: enable failed — run in a desktop session: systemctl --user enable ssh-add-keyring.service"
+    fi
+else
+    echo "    WARN: no user systemd session here. After your first graphical login, run:"
+    echo "          systemctl --user daemon-reload && systemctl --user enable ssh-add-keyring.service"
+fi
+
+# 8. Patch ~/.claude.json with MCP servers under the /home/em/development project
 CLAUDE_JSON="$HOME/.claude.json"
 [ -f "$CLAUDE_JSON" ] || echo "{}" > "$CLAUDE_JSON"
 echo ">>> Writing MCP server entries to $CLAUDE_JSON..."
