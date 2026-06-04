@@ -24,9 +24,11 @@ This will:
   2. Verify SSH access to GitHub (needed before private-repo clones)
   3. Clone ~/.claude-config and the memory repo via SSH
   4. Symlink config files into ~/.claude/
-  5. Patch ~/.claude.json with MCP server entries (HA, GitHub)
-  6. Add Samba mount entries to /etc/fstab and mount them
-  7. (optional) Wire up the daily activity report — IMAP-driven daily
+  5. Install + enable the ssh-add-keyring user service (auto-loads the
+     passphrased SSH key into the agent at login)
+  6. Patch ~/.claude.json with MCP server entries (HA, GitHub)
+  7. Add Samba mount entries to /etc/fstab and mount them
+  8. (optional) Wire up the daily activity report — IMAP-driven daily
      email summary of this laptop's git/memory activity to StartMail
 
 Prereqs: an SSH key registered on github.com/settings/keys. If you don't have
