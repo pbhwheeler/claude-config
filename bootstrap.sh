@@ -43,7 +43,7 @@ read -rp "Proceed? [y/N] " ans
 # 1. apt packages
 echo ">>> Installing apt packages..."
 sudo apt update -qq
-sudo apt install -y git jq curl cifs-utils samba-client npm
+sudo apt install -y git jq curl cifs-utils samba-client npm libsecret-tools
 
 # 2. SSH precheck — git operations on the private memory repo and durable
 # pushes both require an SSH key registered with GitHub. Bail loudly if not.

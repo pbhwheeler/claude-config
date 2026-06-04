@@ -1,0 +1,24 @@
+[Unit]
+Description=Load passphrased id_ed25519 into the SSH agent from the GNOME keyring
+# Run after the keyring/agent are up so the Secret Service + agent socket exist.
+# The SSH_AUTH_SOCK clients use (keyring/ssh) is created late in graphical login
+# with no unit to order against, so also order after the graphical session; the
+# ExecStart wrapper polls for the socket to close the remaining login race.
+After=gnome-keyring-daemon.service gcr-ssh-agent.service graphical-session.target
+Wants=gnome-keyring-daemon.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Talk to the same agent socket interactive clients use, and the user DBus
+# (for the keyring lookup). %t = /run/user/<uid>, %h = home.
+Environment=SSH_AUTH_SOCK=%t/keyring/ssh
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
+Environment=SSH_ASKPASS=%h/.claude-config/scripts/ssh-askpass-keyring.sh
+Environment=SSH_ASKPASS_REQUIRE=force
+# Wrapper waits for %t/keyring/ssh to appear, then runs ssh-add. Replaces a bare
+# ssh-add that raced login and failed with "Error connecting to agent".
+ExecStart=%h/.claude-config/scripts/ssh-add-when-ready.sh %h/.ssh/id_ed25519
+
+[Install]
+WantedBy=default.target
