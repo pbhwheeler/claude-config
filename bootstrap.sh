@@ -145,7 +145,7 @@ jq --arg ha "$HA_TOKEN" --arg gh "$GH_TOKEN" --arg host "$HA_HOST" '
     }
 ' "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp" && mv "$CLAUDE_JSON.tmp" "$CLAUDE_JSON"
 
-# 8. Samba mounts
+# 9. Samba mounts
 echo ">>> Configuring Samba mounts..."
 sudo mkdir -p /mnt/ha /mnt/ha_addons /mnt/ha_media
 UID_GID="uid=$(id -u),gid=$(id -g),vers=3.0"
