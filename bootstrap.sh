@@ -198,6 +198,16 @@ Verify:
   /home/em/.claude/statusline.sh    # should print "ha:🟢 addons:🟢"
   ls /mnt/ha                        # should list HA config
   jq -r '.projects."/home/em/development".mcpServers | keys' ~/.claude.json
+
+SSH key auto-unlock — the ssh-add-keyring service is installed + enabled, but it
+can only load the key once THIS machine's GNOME keyring holds the passphrase.
+One-time per machine, in a desktop session (so the login keyring is unlocked):
+  1. Passphrase the key if it isn't already:  ssh-keygen -p -f ~/.ssh/id_ed25519
+  2. Store that passphrase in the keyring (attributes must match the askpass helper):
+       secret-tool store --label='ssh id_ed25519 passphrase' ssh-key id_ed25519
+  3. Test:  systemctl --user start ssh-add-keyring.service && ssh-add -l
+Until that's done, git-over-SSH will prompt for the passphrase interactively.
+
 Run 'claude' in any project dir to start working.
 
 If the SessionStart hook doesn't fire on your first session, run /hooks
