@@ -126,6 +126,24 @@ else
     echo "          systemctl --user daemon-reload && systemctl --user enable ssh-add-keyring.service"
 fi
 
+# 7b. Dashboards daily snapshot timer — nightly (23:45) runs sync_dashboards.py in
+# the HomeAssistant repo and pushes any dashboard changes. Wrapper skips cleanly if
+# /home/em/development/HomeAssistant or /mnt/ha aren't present, so safe to enable
+# even on a machine that doesn't have them yet.
+echo ">>> Installing dashboards-sync user timer..."
+cp "$CONFIG_DIR/systemd/dashboards-sync.service" "$HOME/.config/systemd/user/dashboards-sync.service"
+cp "$CONFIG_DIR/systemd/dashboards-sync.timer"   "$HOME/.config/systemd/user/dashboards-sync.timer"
+if systemctl --user daemon-reload 2>/dev/null; then
+    if systemctl --user enable --now dashboards-sync.timer 2>/dev/null; then
+        echo "    enabled — nightly Lovelace dashboard snapshot to the HomeAssistant repo"
+    else
+        echo "    WARN: enable failed — run in a desktop session: systemctl --user enable --now dashboards-sync.timer"
+    fi
+else
+    echo "    WARN: no user systemd session here. After your first graphical login, run:"
+    echo "          systemctl --user daemon-reload && systemctl --user enable --now dashboards-sync.timer"
+fi
+
 # 8. Patch ~/.claude.json with MCP servers under the /home/em/development project
 CLAUDE_JSON="$HOME/.claude.json"
 [ -f "$CLAUDE_JSON" ] || echo "{}" > "$CLAUDE_JSON"
