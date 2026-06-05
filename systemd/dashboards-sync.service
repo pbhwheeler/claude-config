@@ -1,0 +1,13 @@
+[Unit]
+Description=Snapshot HA Lovelace dashboards into the HomeAssistant repo and push
+# Need the keyring SSH agent (for git push auth) and the network up.
+After=gnome-keyring-daemon.service gcr-ssh-agent.service graphical-session.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Same agent socket interactive clients + ssh-add-keyring.service use. %t=/run/user/<uid>
+Environment=SSH_AUTH_SOCK=%t/keyring/ssh
+ExecStart=/home/em/development/HomeAssistant/dashboards_autocommit.sh
+StandardOutput=append:%h/.local/share/dashboards-sync.log
+StandardError=append:%h/.local/share/dashboards-sync.log
