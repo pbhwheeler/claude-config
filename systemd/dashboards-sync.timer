@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily HA Lovelace dashboard snapshot into the HomeAssistant repo
+
+[Timer]
+# Daily at 23:45 local. Persistent=true catches up after a missed run (laptop
+# asleep/off) on the next login/boot — important since this is a laptop.
+OnCalendar=*-*-* 23:45:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
