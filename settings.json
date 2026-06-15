@@ -43,6 +43,18 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/em/.claude-config/remote_write_hook.py",
+            "timeout": 10,
+            "statusMessage": "Checking remote-session status..."
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -50,6 +62,8 @@
     "command": "/home/em/.claude/statusline.sh"
   },
   "effortLevel": "xhigh",
+  "tui": "fullscreen",
   "theme": "dark",
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "model": "opus[1m]"
 }
