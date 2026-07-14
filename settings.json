@@ -1,4 +1,5 @@
 {
+  "model": "claude-fable-5[1m]",
   "hooks": {
     "PostToolUse": [
       {
@@ -64,6 +65,5 @@
   "effortLevel": "xhigh",
   "tui": "fullscreen",
   "theme": "dark",
-  "agentPushNotifEnabled": true,
-  "model": "opus[1m]"
+  "agentPushNotifEnabled": true
 }
