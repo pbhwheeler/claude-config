@@ -7,7 +7,10 @@
 
 set -u
 
-HA=http://192.168.1.41:8123
+# ⚠ BY NAME, never by IP: the server moved .41 -> .2 on 2026-09-02 and Starlink
+# can lease any address away. This probe sat on the dead .41 until 2026-09-09 and
+# reported a false "HA REST 000" at every session start for a week.
+HA=http://homeassistant.local:8123
 TOKEN=$(jq -r '.projects."/home/em/development".mcpServers."home-assistant".headers.Authorization' \
         /home/em/.claude.json 2>/dev/null | sed 's/^Bearer //')
 
@@ -50,7 +53,7 @@ fi
 
 # 3) AppDaemon admin port — returns 302 redirect to login.
 AD=$(curl -s -m 2 -o /dev/null -w '%{http_code}' \
-     "http://192.168.1.41:5050/" 2>/dev/null)
+     "http://homeassistant.local:5050/" 2>/dev/null)
 case "$AD" in
     200|302|303) ;;
     *) WARN+=("AppDaemon :5050 $AD") ;;

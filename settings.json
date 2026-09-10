@@ -1,5 +1,5 @@
 {
-  "model": "claude-fable-5-1[1m]",
+  "model": "opus[1m]",
   "hooks": {
     "PostToolUse": [
       {
@@ -28,6 +28,16 @@
             "command": "/home/em/.claude/session_start.sh",
             "timeout": 10,
             "statusMessage": "Checking HA + memory..."
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/em/.claude-config/scripts/memory_lint.py",
+            "timeout": 15,
+            "statusMessage": "Linting memory against live state..."
           }
         ]
       }
