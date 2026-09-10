@@ -75,5 +75,8 @@
   "effortLevel": "xhigh",
   "tui": "fullscreen",
   "theme": "dark",
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "permissions": {
+    "defaultMode": "default"
+  }
 }
