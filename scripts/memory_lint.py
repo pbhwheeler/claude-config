@@ -174,6 +174,90 @@ def check_alert_slots(mem):
                     break
 
 
+def check_committed_secrets():
+    """A credential literal in a file git tracks. All three repos are pushed to
+    GitHub and claude-config is PUBLIC, so this is the one lint finding that is
+    urgent rather than tidy.
+
+    WHY IT EXISTS (2026-09-09): the Frigate config carried a real MQTT password
+    in 5 commits (2026-03-18 to 05-26) because sanitising it to
+    {FRIGATE_*_PASSWORD} placeholders is a MANUAL step in the deploy workflow.
+    That password has since been rotated and HEAD is clean, but nothing stops the
+    next forgotten substitution. Entropy + a placeholder/expression filter is
+    enough: real secrets are high-entropy literals, while the things that look
+    like them here are variable reads (process.env.HA_TOKEN), paths
+    (credentials=/etc/cifs.creds) and templates ({FOO}, !secret).
+
+    ⚠ NEVER prints the value — file, line, key and shape only.
+    """
+    import math
+    KEY = re.compile(r"""(?i)\b([a-z_]*(?:password|passwd|token|api[_-]?key|psk)[a-z_]*)"""
+                     r"""["']?\s*[:=]\s*["']?([^\s"',&#]+)""")
+    JWT = re.compile(r"eyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{10,}")
+    SKIP = (".pdf", ".png", ".jpg", ".jpeg", ".gif", ".zip", ".gz", ".ico", ".woff", ".woff2")
+    BENIGN = re.compile(r"""(?i)^(\{|<|!secret|your|xxx+|changeme|redacted|example|placeholder"""
+                        r"""|none|null|true|false|/|\$)""")
+    EXPR = re.compile(r"""[()\[\]$]|\.env|self\.|os\.|process\.|args|\.get|getenv|hass\.""")
+    # A bare identifier, or a dotted chain like tokenInput.value / this._token —
+    # code READING a credential, never the credential itself.
+    IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+
+    def entropy(s):
+        return -sum((s.count(c) / len(s)) * math.log2(s.count(c) / len(s))
+                    for c in set(s)) if s else 0.0
+
+    seen = set()
+    for repo in (REPO, MEM, "/home/em/.claude-config"):
+        listing = sh(["git", "ls-files"], cwd=repo, timeout=8)
+        if not listing or repo in seen:
+            continue
+        seen.add(repo)
+        for rel in listing.split("\n"):
+            if not rel or rel.lower().endswith(SKIP):
+                continue
+            try:
+                text = open(os.path.join(repo, rel), encoding="utf-8").read()
+            except Exception:
+                continue
+            for n, line in enumerate(text.splitlines(), 1):
+                if len(line) > 400:
+                    continue
+                if JWT.search(line):
+                    warn.append("⚠ SECRET in a TRACKED file — %s:%d carries a JWT-shaped "
+                                "token. Sanitize before it is pushed." % (rel, n))
+                    continue
+                m = KEY.search(line)
+                if not m:
+                    continue
+                # `password:` inside backticks is PROSE about credentials — the
+                # security-hardening notes discuss the very keys we scan for.
+                if m.start() > 0 and line[m.start() - 1] == "`":
+                    continue
+                # Strip wrapping punctuation BOTH ends: a value written as
+                # `<REDACTED>` in prose starts with a backtick, which hid it from
+                # the placeholder test (caught 2026-09-09 on frigate_cameras.md).
+                val = m.group(2).strip("`\"'").rstrip("}\"';,)`")
+                # ⚠⚠ THE CODE-SHAPE FILTERS APPLY TO CODE ONLY. In a .js file
+                # `this._token = tokenInput.value` is a variable read; in a YAML
+                # config `password: someplaintext` IS the credential — and the one
+                # real password ever committed here was 12 lowercase letters, i.e.
+                # SHAPE-IDENTICAL to an identifier. Applying IDENT everywhere made
+                # this guard blind to the exact thing it exists to catch (caught by
+                # the differential test against the 2026-05-26 blob, 2026-09-09).
+                is_code = rel.lower().endswith((".js", ".cjs", ".mjs", ".py", ".ts", ".sh"))
+                if (BENIGN.match(val) or len(val) < 8 or entropy(val) < 3.0
+                        or (is_code and (EXPR.search(val) or IDENT.match(val)))):
+                    # ⚠ THRESHOLDS ARE EVIDENCE-BASED, DO NOT RAISE THEM CASUALLY.
+                    # The one real password ever committed here (frigate MQTT,
+                    # 2026-03/05) is 12 chars at entropy 3.08 — an earlier 3.4 cut
+                    # was blind to it. 8/3.0 found exactly one true positive across
+                    # 1074 commits and three repos, with zero false positives.
+                    continue
+                warn.append("⚠ SECRET in a TRACKED file — %s/%s:%d key=%s "
+                            "(len %d, entropy %.1f). Sanitize before it is pushed."
+                            % (os.path.basename(repo), rel, n, m.group(1), len(val), entropy(val)))
+
+
 def check_repo_state():
     """The two sync'd repos are covered by session_start.sh; this is the third one."""
     if not os.path.isdir(REPO + "/.git"):
@@ -197,6 +281,7 @@ def main():
     check_rollback_files(alltext)
     check_device_ips(mem)
     check_alert_slots(mem)
+    check_committed_secrets()
     check_repo_state()
     signal.alarm(0)
     for w in warn[:8]:
