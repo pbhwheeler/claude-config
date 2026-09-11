@@ -30,6 +30,7 @@ MEM = "/home/em/.claude/projects/-home-em-development/memory"
 # The word-markers are secondary and only count at the START of a bullet, so a
 # passing mention of "open" mid-prose does not become a phantom task.
 HOURGLASS = "⏳"
+CALENDAR = "🗓️"   # also used for dated commitments
 WORD_RE = re.compile(r"^[-*]\s*\**\s*(OPEN|TODO|BLOCKED|NOT STARTED|NOT DONE|PENDING)\b", re.I)
 DATE_RE = re.compile(r"~?(\d{4}-\d{2}-\d{2})")
 # strip markdown noise for a scannable one-liner
@@ -58,41 +59,82 @@ def main() -> int:
         except OSError:
             continue
         for ln in lines:
-            if HOURGLASS not in ln and not WORD_RE.match(ln.strip()):
+            raw = ln.strip()
+            if raw.startswith(("|", ">", "#")):   # tables, quotes, headers
                 continue
-            if ln.lstrip().startswith(("|", ">")):      # table rows / quotes
+            # ★ READ FROM THE MARKER FORWARD, not the whole line. A line often
+            # announces finished work AND carries a trailing open clause
+            # ("...DEPLOYED 2026-08-22 ... ⏳ VALIDATION = the next 19:35 stop").
+            # Taking the whole line mislabels it as the deploy, and the date
+            # regex then grabs the DEPLOY date and calls it overdue.
+            i = ln.find(HOURGLASS)
+            j = ln.find(CALENDAR)
+            if i < 0 or (0 <= j < i):
+                i, mk = (j, CALENDAR) if j >= 0 else (-1, "")
+            else:
+                mk = HOURGLASS
+            if i >= 0:
+                clause = ln[i + len(mk):]
+            elif WORD_RE.match(raw):
+                clause = raw
+            else:
                 continue
-            txt = label(ln)
-            if len(txt) < 25:                            # headers, stubs
+            # a clause that is itself an explicit completion is not open
+            if re.search(r"\b(CLOSED|RESOLVED|SUPERSEDED|RETIRED)\b", clause[:60], re.I):
                 continue
-            m = DATE_RE.search(ln)
-            when = None
+            txt = label(clause)
+            if len(txt) < 25:                     # stubs / section labels
+                continue
+            m = DATE_RE.search(clause)            # date must be IN the open clause
+            when, kind = None, None
             if m:
                 try:
                     when = dt.date.fromisoformat(m.group(1))
                 except ValueError:
                     when = None
-            found.setdefault(name, []).append((when, txt))
+                if when:
+                    # ⚠ A DATE IS NOT AUTOMATICALLY A DEADLINE. Most dates in this
+                    # memory are when an item was RAISED ("PENDING (user directed
+                    # 2026-09-02)", "OPEN, raised 2026-09-10"). Calling those
+                    # OVERDUE manufactures urgency that was never stated. Only a
+                    # due-cue immediately before the date makes it a deadline.
+                    # ⚠ the "~" is CONSUMED by DATE_RE, so it is not in `pre` —
+                    # test the matched text itself for it, or a leading "~2026-.."
+                    # (the commonest way an approximate deadline is written here)
+                    # silently reads as merely "raised".
+                    pre = clause[max(0, m.start() - 30):m.start()].lower()
+                    tilde = m.group(0).lstrip().startswith("~")
+                    kind = "due" if (tilde or re.search(
+                        r"(due|by|around|revisit|re-?check|deadline)\s*$", pre)) else "raised"
+            found.setdefault(name, []).append((when, kind, txt))
 
     if not found:
         print("No open items found.")
         return 0
 
     # dated items first, soonest first — these are the ones with a clock on them
-    dated = sorted(((w, f, t) for f, items in found.items() for w, t in items if w),
-                   key=lambda x: x[0])
-    if dated:
-        print("== DATED ==")
-        for w, f, t in dated:
-            age = (today - w).days
-            flag = "OVERDUE" if age > 0 else ("TODAY" if age == 0 else f"in {-age}d")
-            print(f"  [{w}] {flag:>9}  ({f})")
+    dated = sorted(((w, k, f, t) for f, items in found.items() for w, k, t in items if w),
+                   key=lambda x: (x[1] != "due", x[0]))
+    due = [d for d in dated if d[1] == "due"]
+    aged = [d for d in dated if d[1] != "due"]
+    if due:
+        print("== ON A CLOCK (explicit due/revisit date) ==")
+        for w, _k, f, t in due:
+            n = (today - w).days
+            flag = f"OVERDUE {n}d" if n > 0 else ("DUE TODAY" if n == 0 else f"in {-n}d")
+            print(f"  [{w}] {flag:>12}  ({f})")
+            print(f"      {t}")
+        print()
+    if aged:
+        print("== RAISED, NO DEADLINE (oldest first — age only, NOT overdue) ==")
+        for w, _k, f, t in aged:
+            print(f"  [{w}] {(today - w).days:>5}d old  ({f})")
             print(f"      {t}")
         print()
 
     print("== BY PROJECT ==")
     for f in sorted(found, key=lambda k: (-len(found[k]), k)):
-        undated = [t for w, t in found[f] if not w]
+        undated = [t for w, _k, t in found[f] if not w]
         if not undated:
             continue
         print(f"  {f}  ({len(undated)})")
