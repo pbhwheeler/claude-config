@@ -120,3 +120,9 @@ if [ -f "$MARKER" ]; then
         printf '↻ Synced from %s (last session ended %s)\n' "$LAST_HOST" "$LAST_TS"
     fi
 fi
+
+# 6) Due/overdue open items ONLY (the full digest is /open on demand). Restores the
+# passive safety net the hub's trimmed Queued section used to provide, at a few
+# lines instead of ~460 tokens. Same bounded/silent-when-clean discipline as the
+# lint: prints nothing unless something carries a deadline.
+timeout 5 python3 /home/em/.claude-config/scripts/open_items.py --due 2>/dev/null || true
