@@ -132,3 +132,7 @@ timeout 5 python3 /home/em/.claude-config/scripts/open_items.py --due 2>/dev/nul
 # ready-to-arm lines; the model arms them first thing (hub rule). Silent when the
 # roster has nothing active.
 timeout 5 python3 /home/em/.claude-config/scripts/watch_roster.py 2>/dev/null || true
+
+# 6b) Standing one-line reminder that the open-items digest exists (user chose
+# this over auto-loading the full digest: ~15 tokens vs ~1,400 every session).
+timeout 5 python3 /home/em/.claude-config/scripts/open_items.py --count 2>/dev/null || true
