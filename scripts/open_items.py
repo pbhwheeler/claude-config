@@ -25,6 +25,10 @@ the clause as a deadline. Partial "YYYY-MM" dates are accepted (1st of month).
 USAGE:  open_items.py          full digest
         open_items.py --due    ON-A-CLOCK section only; prints NOTHING if empty
                                (SessionStart hook: silent when clean, like the lint)
+        open_items.py --count  ONE line, always: "N marked open items — /open …"
+                               (SessionStart hook: the standing reminder that the
+                               digest exists, ~15 tokens; user chose this over
+                               auto-loading the full ~1,400-token digest)
 
 CONTRACT: read-only, prints only memory prose, no network, no secrets.
 """
