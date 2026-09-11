@@ -126,3 +126,9 @@ fi
 # lines instead of ~460 tokens. Same bounded/silent-when-clean discipline as the
 # lint: prints nothing unless something carries a deadline.
 timeout 5 python3 /home/em/.claude-config/scripts/open_items.py --due 2>/dev/null || true
+
+# 7) Cron watches to RE-ARM. CronCreate jobs are session-only and a hook cannot
+# create them — only the model can. This prints the roster's ACTIVE watches as
+# ready-to-arm lines; the model arms them first thing (hub rule). Silent when the
+# roster has nothing active.
+timeout 5 python3 /home/em/.claude-config/scripts/watch_roster.py 2>/dev/null || true
