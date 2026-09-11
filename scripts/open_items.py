@@ -60,7 +60,12 @@ def main() -> int:
             continue
         for ln in lines:
             raw = ln.strip()
-            if raw.startswith(("|", ">", "#")):   # tables, quotes, headers
+            # ⚠ Skip tables/quotes, but NOT headers — real open items live in
+            # headings here ("### 4. ⏳ Calendar item — re-check the 0.55
+            # threshold", "## ⚠⚠ OPEN SAFETY ITEM"). Filtering headers wholesale
+            # silently dropped those. Missing a real item is worse than one noisy
+            # line, so only the known section-label forms are excluded below.
+            if raw.startswith(("|", ">")):
                 continue
             # ★ READ FROM THE MARKER FORWARD, not the whole line. A line often
             # announces finished work AND carries a trailing open clause
@@ -81,6 +86,9 @@ def main() -> int:
                 continue
             # a clause that is itself an explicit completion is not open
             if re.search(r"\b(CLOSED|RESOLVED|SUPERSEDED|RETIRED)\b", clause[:60], re.I):
+                continue
+            # section labels, not tasks
+            if re.match(r"\s*Queued\b|\s*QUEUED\s*\(", clause, re.I):
                 continue
             txt = label(clause)
             if len(txt) < 25:                     # stubs / section labels
