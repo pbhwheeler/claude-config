@@ -151,6 +151,10 @@ def main():
     due_only = "--due" in sys.argv[1:]
     today = dt.date.today()
     items = collect()
+    if "--count" in sys.argv[1:]:
+        files = len({it["file"] for it in items})
+        print(f"📋 {len(items)} marked open items across {files} files — /open to choose a focus")
+        return 0
     due = sorted((it for it in items if it["kind"] == "due" and it["when"]),
                  key=lambda it: it["when"])
     raised = sorted((it for it in items if it["kind"] == "open" and it["when"]),
