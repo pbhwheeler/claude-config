@@ -1,4 +1,7 @@
 {
+  "permissions": {
+    "defaultMode": "default"
+  },
   "model": "opus[1m]",
   "hooks": {
     "PostToolUse": [
@@ -75,8 +78,5 @@
   "effortLevel": "xhigh",
   "tui": "fullscreen",
   "theme": "dark",
-  "agentPushNotifEnabled": true,
-  "permissions": {
-    "defaultMode": "default"
-  }
+  "agentPushNotifEnabled": true
 }
