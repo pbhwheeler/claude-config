@@ -58,7 +58,7 @@ echo ">>> Installing apt packages..."
 # doctormo/wacom-plus had no noble Release file). Warn and continue instead.
 sudo apt update -qq || echo "    WARN: apt update reported errors — usually a third-party PPA with no" \
                             "release for this Ubuntu; continuing (disable the source to silence it)"
-sudo apt install -y git jq curl cifs-utils samba-client npm libsecret-tools \
+sudo apt install -y git jq curl cifs-utils smbclient npm libsecret-tools \
     nmap avahi-daemon python3-venv
 # nmap: netinv_client.py is useless without it. avahi-daemon: homeassistant.local
 # is mDNS-only and the fstab lines wait on avahi-daemon.service. python3-venv:
