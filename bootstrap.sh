@@ -87,8 +87,10 @@ fi
 #    Re-runs on an already-bootstrapped machine must not force a re-paste
 #    (dry-run finding 2026-09-16): reuse the token already in ~/.claude.json
 #    when Enter is pressed, and skip the Samba prompt if /etc/cifs.creds exists.
-EXISTING_HA=$(jq -r '.projects."/home/em/development".mcpServers."home-assistant".headers.Authorization // empty' \
-              "$HOME/.claude.json" 2>/dev/null | sed 's/^Bearer //')
+# (|| true: on a FRESH machine ~/.claude.json does not exist yet, jq exits 2,
+#  and under set -e that would abort the run right here.)
+EXISTING_HA=$( { jq -r '.projects."/home/em/development".mcpServers."home-assistant".headers.Authorization // empty' \
+                 "$HOME/.claude.json" 2>/dev/null || true; } | sed 's/^Bearer //')
 if [ -n "$EXISTING_HA" ]; then
     read -rp "Home Assistant long-lived access token [Enter = keep the one already configured]: " HA_TOKEN
     HA_TOKEN="${HA_TOKEN:-$EXISTING_HA}"
