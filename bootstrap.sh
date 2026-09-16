@@ -9,7 +9,8 @@ set -euo pipefail
 
 CONFIG_DIR="$HOME/.claude-config"
 MEMORY_DIR="$HOME/.claude/projects/-home-em-development/memory"
-HA_HOST="192.168.1.41"
+HA_HOST="homeassistant.local"   # by NAME, never the IP: the server moved .41 -> .2 on
+                                # 2026-09-02 and this line was still .41 (dry-run 2026-09-16)
 
 # Git remotes use SSH (durable; matches MEMORY.md auth doc). PATs in URLs have
 # previously gone silently dead (the 2026-06-01 incident: PAT revoked, push
@@ -73,8 +74,23 @@ fi
 # 3. Tokens — prompt up front so the rest can run unattended.
 #    No GitHub PAT (dropped 2026-09-16): git is SSH-only and the GitHub MCP
 #    entry this script used to write never existed on the working laptop.
-read -rp "Home Assistant long-lived access token (shared across laptops): " HA_TOKEN
-read -rsp "Samba password for HA share: " SAMBA_PASS; echo
+#    Re-runs on an already-bootstrapped machine must not force a re-paste
+#    (dry-run finding 2026-09-16): reuse the token already in ~/.claude.json
+#    when Enter is pressed, and skip the Samba prompt if /etc/cifs.creds exists.
+EXISTING_HA=$(jq -r '.projects."/home/em/development".mcpServers."home-assistant".headers.Authorization // empty' \
+              "$HOME/.claude.json" 2>/dev/null | sed 's/^Bearer //')
+if [ -n "$EXISTING_HA" ]; then
+    read -rp "Home Assistant long-lived access token [Enter = keep the one already configured]: " HA_TOKEN
+    HA_TOKEN="${HA_TOKEN:-$EXISTING_HA}"
+else
+    read -rp "Home Assistant long-lived access token (shared across laptops): " HA_TOKEN
+fi
+if [ -f /etc/cifs.creds ]; then
+    echo "    Samba credentials already present at /etc/cifs.creds — not prompting"
+    SAMBA_PASS=""
+else
+    read -rsp "Samba password for HA share: " SAMBA_PASS; echo
+fi
 
 # 4. Clone or update config repo (this script's home)
 if [ ! -d "$CONFIG_DIR/.git" ]; then
@@ -188,7 +204,24 @@ jq --arg ha "$HA_TOKEN" --arg host "$HA_HOST" '
 # 9. Samba mounts
 echo ">>> Configuring Samba mounts..."
 sudo mkdir -p /mnt/ha /mnt/ha_addons /mnt/ha_media
+# Credentials go in a root-only file, never inline in the world-readable fstab
+# (dry-run 2026-09-16: the script had password=... in fstab while the working
+# laptop used credentials=/etc/cifs.creds). The password reaches root via a
+# pipe, so it never appears on a command line.
+CREDS=/etc/cifs.creds
+if [ -n "$SAMBA_PASS" ]; then
+    printf 'username=homeassistant\npassword=%s\n' "$SAMBA_PASS" | sudo tee "$CREDS" > /dev/null
+    sudo chown root:root "$CREDS" && sudo chmod 600 "$CREDS"
+    echo "    wrote $CREDS (root, mode 600)"
+elif sudo test -f "$CREDS"; then
+    echo "    using existing $CREDS"
+else
+    echo "    ERROR: no Samba password given and no $CREDS — the mounts below will fail"
+fi
 UID_GID="uid=$(id -u),gid=$(id -g),vers=3.0"
+# _netdev + x-systemd.after=avahi-daemon.service are REQUIRED: the share is
+# addressed by mDNS name and a boot-time mount races the responder without them.
+OPTS="credentials=${CREDS},${UID_GID},_netdev,x-systemd.after=avahi-daemon.service"
 add_fstab() {
     local share="$1" mp="$2"
     if grep -q "^//${HA_HOST}/${share} " /etc/fstab; then
@@ -196,7 +229,7 @@ add_fstab() {
         return
     fi
     echo "    adding fstab: //$HA_HOST/$share -> $mp"
-    echo "//${HA_HOST}/${share} $mp cifs username=homeassistant,password=${SAMBA_PASS},${UID_GID} 0 0" \
+    echo "//${HA_HOST}/${share} $mp cifs ${OPTS} 0 0" \
         | sudo tee -a /etc/fstab > /dev/null
 }
 add_fstab config       /mnt/ha
