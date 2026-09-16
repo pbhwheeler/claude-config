@@ -20,23 +20,30 @@ repo_url() { local repo="$1"; echo "git@github.com:pbhwheeler/${repo}.git"; }
 cat <<'INTRO'
 === Claude Code dev machine bootstrap ===
 This will:
-  1. apt install git jq curl cifs-utils npm libsecret-tools
+  1. apt install git jq curl cifs-utils npm libsecret-tools nmap avahi-daemon
+     python3-venv
   2. Verify SSH access to GitHub (needed before private-repo clones)
-  3. Clone ~/.claude-config and the memory repo via SSH
+  3. Clone ~/.claude-config, the memory repo AND the HomeAssistant repo
+     (/home/em/development/HomeAssistant — haq.py, lovelace_ws.py, the apps)
   4. Symlink config files into ~/.claude/
   5. Install + enable the ssh-add-keyring user service (auto-loads the
      passphrased SSH key into the agent at login)
-  6. Patch ~/.claude.json with MCP server entries (HA, GitHub)
+  6. Patch ~/.claude.json with the home-assistant MCP server entry
   7. Add Samba mount entries to /etc/fstab and mount them
-  8. (optional) Wire up the daily activity report — IMAP-driven daily
+  8. Create the ~/.ha-tools python venv (PEP 668 blocks plain pip on Ubuntu)
+  9. (optional) Wire up the daily activity report — IMAP-driven daily
      email summary of this laptop's git/memory activity to StartMail
+
+NOT covered (manual, see memory bootstrap_new_dev_machine.md): Claude Code
+itself (native installer), node via nvm, the esphome venv + its secrets.yaml.
 
 Prereqs: an SSH key registered on github.com/settings/keys. If you don't have
 one yet: ssh-keygen -t ed25519, then paste ~/.ssh/id_ed25519.pub into GitHub.
 
-You'll be prompted for: GitHub PAT (for the GitHub MCP server only; git uses
-SSH), HA long-lived token (unique per laptop), Samba password, and optionally
-a StartMail app password for the daily report.
+You'll be prompted for: the HA long-lived token (SHARED across laptops —
+paste the existing one from the password manager), the Samba password, and
+optionally a StartMail app password for the daily report. No GitHub PAT:
+git is SSH-only and there is no GitHub MCP server (2026-09-16).
 
 INTRO
 read -rp "Proceed? [y/N] " ans
@@ -45,7 +52,11 @@ read -rp "Proceed? [y/N] " ans
 # 1. apt packages
 echo ">>> Installing apt packages..."
 sudo apt update -qq
-sudo apt install -y git jq curl cifs-utils samba-client npm libsecret-tools
+sudo apt install -y git jq curl cifs-utils samba-client npm libsecret-tools \
+    nmap avahi-daemon python3-venv
+# nmap: netinv_client.py is useless without it. avahi-daemon: homeassistant.local
+# is mDNS-only and the fstab lines wait on avahi-daemon.service. python3-venv:
+# step 8 (PEP 668 blocks pip outside a venv on Ubuntu).
 
 # 2. SSH precheck — git operations on the private memory repo and durable
 # pushes both require an SSH key registered with GitHub. Bail loudly if not.
@@ -59,9 +70,10 @@ else
     exit 1
 fi
 
-# 3. Tokens — prompt up front so the rest can run unattended
-read -rp "GitHub PAT (repo scope, for MCP server only — NOT for git): " GH_TOKEN
-read -rp "Home Assistant long-lived access token: " HA_TOKEN
+# 3. Tokens — prompt up front so the rest can run unattended.
+#    No GitHub PAT (dropped 2026-09-16): git is SSH-only and the GitHub MCP
+#    entry this script used to write never existed on the working laptop.
+read -rp "Home Assistant long-lived access token (shared across laptops): " HA_TOKEN
 read -rsp "Samba password for HA share: " SAMBA_PASS; echo
 
 # 4. Clone or update config repo (this script's home)
@@ -75,6 +87,19 @@ if [ ! -d "$MEMORY_DIR/.git" ]; then
     echo ">>> Cloning memory repo via SSH..."
     mkdir -p "$(dirname "$MEMORY_DIR")"
     git clone "$(repo_url claude-memory)" "$MEMORY_DIR"
+fi
+
+# 5b. Clone or update the HomeAssistant repo — supplies haq.py, lovelace_ws.py,
+#     netinv_client.py, the deploy_*_lovelace.py scripts and every deployed app.
+#     Gap #6 of the parity list until 2026-09-16.
+HA_REPO_DIR="/home/em/development/HomeAssistant"
+if [ -d "$HA_REPO_DIR/.git" ]; then
+    echo ">>> Updating HomeAssistant repo..."
+    git -C "$HA_REPO_DIR" pull --ff-only || echo "    (pull failed — resolve by hand)"
+else
+    echo ">>> Cloning HomeAssistant repo to $HA_REPO_DIR..."
+    mkdir -p "$(dirname "$HA_REPO_DIR")"
+    git clone "$(repo_url HomeAssistant)" "$HA_REPO_DIR"
 fi
 
 # 6. Symlink config files into ~/.claude/
@@ -148,7 +173,7 @@ fi
 CLAUDE_JSON="$HOME/.claude.json"
 [ -f "$CLAUDE_JSON" ] || echo "{}" > "$CLAUDE_JSON"
 echo ">>> Writing MCP server entries to $CLAUDE_JSON..."
-jq --arg ha "$HA_TOKEN" --arg gh "$GH_TOKEN" --arg host "$HA_HOST" '
+jq --arg ha "$HA_TOKEN" --arg host "$HA_HOST" '
   .projects = (.projects // {})
   | .projects["/home/em/development"] = (.projects["/home/em/development"] // {})
   | .projects["/home/em/development"].mcpServers = {
@@ -156,11 +181,6 @@ jq --arg ha "$HA_TOKEN" --arg gh "$GH_TOKEN" --arg host "$HA_HOST" '
         type: "http",
         url: ("http://" + $host + ":8123/api/mcp"),
         headers: { Authorization: ("Bearer " + $ha) }
-      },
-      "github": {
-        type: "http",
-        url: "https://api.githubcopilot.com/mcp",
-        headers: { Authorization: ("Bearer " + $gh) }
       }
     }
 ' "$CLAUDE_JSON" > "$CLAUDE_JSON.tmp" && mv "$CLAUDE_JSON.tmp" "$CLAUDE_JSON"
@@ -190,6 +210,21 @@ sudo mount -a || echo "    (some mounts failed — check 'mount -a' manually)"
 git -C "$MEMORY_DIR" remote set-url origin "$(repo_url claude-memory)" || true
 git -C "$CONFIG_DIR" remote set-url origin "$(repo_url claude-config)" || true
 
+# 10b. ~/.ha-tools venv — the ONLY place python deps can be installed on Ubuntu
+#      (PEP 668 blocks pip outside a venv). Pinned list lives in this repo.
+HA_TOOLS="$HOME/.ha-tools"
+REQ="$CONFIG_DIR/scripts/ha-tools-requirements.txt"
+if [ -x "$HA_TOOLS/bin/pip" ]; then
+    echo ">>> ~/.ha-tools venv already exists — leaving it alone"
+elif [ -f "$REQ" ]; then
+    echo ">>> Creating ~/.ha-tools venv..."
+    python3 -m venv "$HA_TOOLS" && "$HA_TOOLS/bin/pip" install -q -r "$REQ" \
+        && echo "    installed $("$HA_TOOLS/bin/pip" list 2>/dev/null | wc -l) packages" \
+        || echo "    WARN: venv install failed — run: python3 -m venv ~/.ha-tools && ~/.ha-tools/bin/pip install -r $REQ"
+else
+    echo "    (no $REQ — skipping venv)"
+fi
+
 # 11. Optional: daily activity report (see reference_daily_report.md).
 #    The setup script is interactive — prompts for the StartMail app password
 #    silently and writes ~/.config/daily-report/imap.cfg mode 600, then
@@ -212,10 +247,14 @@ fi
 cat <<EOF
 
 === Bootstrap complete ===
-Verify:
+Verify (parity smoke test — each line exercises a different capability):
   /home/em/.claude/statusline.sh    # should print "ha:🟢 addons:🟢"
-  ls /mnt/ha                        # should list HA config
-  jq -r '.projects."/home/em/development".mcpServers | keys' ~/.claude.json
+  getent hosts homeassistant.local && ls /mnt/ha      # mDNS + Samba
+  jq -r '.projects."/home/em/development".mcpServers | keys' ~/.claude.json   # ["home-assistant"]
+  cd /home/em/development/HomeAssistant && python3 haq.py states sun.sun     # HA token + repo
+  ~/.ha-tools/bin/pip list | wc -l  # ~36
+  command -v nmap && ssh -T git@github.com
+Still manual: claude --version (native installer), node -v (nvm), esphome venv.
 
 SSH key auto-unlock — the ssh-add-keyring service is installed + enabled, but it
 can only load the key once THIS machine's GNOME keyring holds the passphrase.
