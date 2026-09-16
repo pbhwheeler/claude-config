@@ -26,7 +26,7 @@ The script will:
 2. Clone this repo to `~/.claude-config`
 3. Clone `claude-memory` to `~/.claude/projects/-home-em-development/memory`
 4. Symlink `settings.json`, `statusline.sh`, `session_start.sh`, `session_end.sh`, `prune-backups.sh`, and `commands/*.md` into `~/.claude/`
-5. Patch `~/.claude.json` with the HA + GitHub MCP server entries (sqlite retired 2026-05-17 — REST `/api/history/period/` is used instead)
+5. Patch `~/.claude.json` with the home-assistant MCP server entry (github entry removed 2026-09-16; sqlite retired 2026-05-17 — REST `/api/history/period/` is used instead)
 6. Add Samba mount entries to `/etc/fstab` and run `mount -a`
 7. Normalize both repo remotes to SSH (git@github.com:…) so PostToolUse autopush works — no PAT anywhere
 
