@@ -67,7 +67,12 @@ sudo apt install -y git jq curl cifs-utils samba-client npm libsecret-tools \
 # 2. SSH precheck — git operations on the private memory repo and durable
 # pushes both require an SSH key registered with GitHub. Bail loudly if not.
 echo ">>> Verifying SSH access to GitHub..."
-if ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+# ⚠ GitHub's `ssh -T` ALWAYS exits 1 ("does not provide shell access"), so under
+# `set -o pipefail` a `ssh … | grep -q` pipeline reports FAILURE even when the
+# key is accepted (dry-run 2026-09-16: every run died here with a valid key).
+# Capture the output first; judge only the text.
+GH_CHECK="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 || true)"
+if grep -q "successfully authenticated" <<< "$GH_CHECK"; then
     echo "    OK: SSH auth as pbhwheeler works."
 else
     echo "    FAIL: ssh -T git@github.com did not return 'successfully authenticated'."
