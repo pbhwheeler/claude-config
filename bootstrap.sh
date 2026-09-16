@@ -52,7 +52,12 @@ read -rp "Proceed? [y/N] " ans
 
 # 1. apt packages
 echo ">>> Installing apt packages..."
-sudo apt update -qq
+# A broken THIRD-PARTY source (a PPA with no build for this release) makes
+# `apt update` exit non-zero even though every Ubuntu repo refreshed fine;
+# with set -e that killed the whole bootstrap at step 1 (dry-run 2026-09-16:
+# doctormo/wacom-plus had no noble Release file). Warn and continue instead.
+sudo apt update -qq || echo "    WARN: apt update reported errors — usually a third-party PPA with no" \
+                            "release for this Ubuntu; continuing (disable the source to silence it)"
 sudo apt install -y git jq curl cifs-utils samba-client npm libsecret-tools \
     nmap avahi-daemon python3-venv
 # nmap: netinv_client.py is useless without it. avahi-daemon: homeassistant.local
