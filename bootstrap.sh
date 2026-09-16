@@ -244,6 +244,15 @@ add_fstab() {
     echo "//${HA_HOST}/${share} $mp cifs ${OPTS} 0 0" \
         | sudo tee -a /etc/fstab > /dev/null
 }
+# Retire legacy lines from bootstraps before 2026-09-02: they point at the
+# server's OLD address and carry the Samba password inline (dry-run 2026-09-16
+# found all three on the second Latitude, making `mount -a` error while the
+# new lines mounted fine). Deleted, not commented — a commented line would
+# still hold the plaintext password.
+if grep -qE '^//192\.168\.1\.41/(config|addon_configs|media) ' /etc/fstab; then
+    echo "    removing legacy //192.168.1.41/ HA share lines (old address, inline password)"
+    sudo sed -i -E '\|^//192\.168\.1\.41/(config\|addon_configs\|media) |d' /etc/fstab
+fi
 add_fstab config       /mnt/ha
 add_fstab addon_configs /mnt/ha_addons
 add_fstab media        /mnt/ha_media
