@@ -46,7 +46,7 @@ def main():
         "(Bash or Write/Edit) before it lands, losing the result -- treat a hang as "
         "UNKNOWN and re-verify with a separate tiny read, never assume failure. For "
         "slow shell writes to /mnt/ha Samba, detach so the abort cannot kill them: "
-        "setsid sh -c '<cmd>' </dev/null >/dev/null 2>&1 &  then verify separately."
+        "write to a temp file in the SAME directory and rename it into place (rename-with-replace is atomic on this CIFS mount, verified 2026-09-18): setsid sh -c 'cp SRC DST.tmp && mv -f DST.tmp DST' </dev/null >/dev/null 2>&1 &  then verify by the TARGET's md5 == the source's, never by a log line."
     )
     print(json.dumps({
         "hookSpecificOutput": {
