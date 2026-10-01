@@ -101,6 +101,8 @@ def collect():
     seen = set()
     for path in sorted(glob.glob(os.path.join(MEM, "*.md"))):
         fname = os.path.basename(path)[:-3]
+        if fname in SKIP_FILES:                       # spec examples, not work
+            continue
         try:
             lines = open(path, encoding="utf-8").read().split("\n")
         except OSError:
