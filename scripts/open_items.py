@@ -49,6 +49,15 @@ DUE_CUE = re.compile(r"(due|by|around|revisit|re-?check|deadline)\s*$", re.I)
 DONE_RE = re.compile(r"\b(CLOSED|RESOLVED|SUPERSEDED|RETIRED|DONE)\b", re.I)
 LABEL_RE = re.compile(r"^\s*(Queued\b|QUEUED\s*\()", re.I)
 SELF_RE = re.compile(r"open_items\.py|/open\b|`/open`", re.I)
+# ★ FILE-LEVEL SKIP (2026-10-01). feedback_open_item_markers.md is the file that
+# DEFINES this convention, so every glyph in it is a SPEC EXAMPLE, never real work
+# — "⏳ [YYYY-MM-DD] text — an open item", "do not leave ⏳ on finished work", etc.
+# It was contributing a permanent floor of ~5 phantom items. SELF_RE cannot catch
+# them: the spec lines never mention /open, and backticks do not help because CLEAN
+# strips them before matching. ⚠ Irony worth keeping: that file's own line 14 warns
+# "completed work kept its ⏳ and was reported open for months" — which is exactly
+# what the file itself was doing to this digest.
+SKIP_FILES = {"feedback_open_item_markers"}
 CLEAN = [(re.compile(r"\[\[([^\]]+)\]\]"), r"\1"),
          (re.compile(r"\[([^\]]+)\]\([^)]*\)"), r"\1"),
          (re.compile(r"`([^`]*)`"), r"\1"),
