@@ -201,6 +201,16 @@ def check_committed_secrets():
     # A bare identifier, or a dotted chain like tokenInput.value / this._token —
     # code READING a credential, never the credential itself.
     IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")
+    # A PLAIN http(s) ENDPOINT IS NOT A CREDENTIAL (added 2026-10-01). This guard cried
+    # wolf at every session start on
+    #   HomeAssistant/envoy_token_lifetime_probe.py:36  TOKENS = "https://entrez.enphaseenergy.com/tokens"
+    # — Enphase's PUBLIC token-issuing endpoint, flagged only because the key is named
+    # TOKENS and the URL is 39 chars at entropy 3.9. A permanent false positive is not
+    # harmless: it trains the reader to skip the whole lint, including a real hit.
+    # ⚠ DELIBERATELY NARROW — no userinfo (`@`) and no query (`?`), so a URL that really
+    # does carry a credential (https://u:p@host, …?api_key=…) is STILL flagged. Applies
+    # in every file type, since a bare endpoint in YAML is no more secret than in code.
+    URL_SAFE = re.compile(r"(?i)^https?://[^\s@?]+$")
 
     def entropy(s):
         return -sum((s.count(c) / len(s)) * math.log2(s.count(c) / len(s))
