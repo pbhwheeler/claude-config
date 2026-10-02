@@ -247,6 +247,15 @@ def check_committed_secrets():
                 # `<REDACTED>` in prose starts with a backtick, which hid it from
                 # the placeholder test (caught 2026-09-09 on frigate_cameras.md).
                 val = m.group(2).strip("`\"'").rstrip("}\"';,)`")
+                # ☢ A QUOTED VALUE IS A LITERAL, AND A LITERAL IS NEVER A VARIABLE READ
+                # (blind spot found 2026-10-01 by a differential case the guard failed).
+                # The IDENT filter exists for `this._token = tokenInput.value`, but the
+                # quote-stripping above destroys the only signal separating that from
+                # `token = "aB3kR9zQ7mN2xV5pL8wT1cY4"` — an alphanumeric token literal is
+                # SHAPE-IDENTICAL to an identifier, so in code files the guard silently
+                # skipped exactly the leak it exists to catch. Record the quoting BEFORE
+                # the strip and let only UNQUOTED values reach IDENT/EXPR.
+                quoted = m.start(2) > 0 and line[m.start(2) - 1] in "\"'"
                 # ⚠⚠ THE CODE-SHAPE FILTERS APPLY TO CODE ONLY. In a .js file
                 # `this._token = tokenInput.value` is a variable read; in a YAML
                 # config `password: someplaintext` IS the credential — and the one
