@@ -266,7 +266,8 @@ def check_committed_secrets():
                 is_code = rel.lower().endswith((".js", ".cjs", ".mjs", ".py", ".ts", ".sh"))
                 if (BENIGN.match(val) or URL_SAFE.match(val)
                         or len(val) < 8 or entropy(val) < 3.0
-                        or (is_code and (EXPR.search(val) or IDENT.match(val)))):
+                        or (is_code and not quoted
+                            and (EXPR.search(val) or IDENT.match(val)))):
                     # ⚠ THRESHOLDS ARE EVIDENCE-BASED, DO NOT RAISE THEM CASUALLY.
                     # The one real password ever committed here (frigate MQTT,
                     # 2026-03/05) is 12 chars at entropy 3.08 — an earlier 3.4 cut
