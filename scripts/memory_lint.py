@@ -211,6 +211,18 @@ def check_committed_secrets():
     # does carry a credential (https://u:p@host, …?api_key=…) is STILL flagged. Applies
     # in every file type, since a bare endpoint in YAML is no more secret than in code.
     URL_SAFE = re.compile(r"(?i)^https?://[^\s@?]+$")
+    # A FILENAME IS NOT A SECRET (2026-10-01): `TOKEN_FILE = "spotifyplus_tokens.json"`
+    # is 23 chars at entropy 3.7 and flagged purely for the key name.
+    FILENAME = re.compile(r"""(?i)^[\w.\-]+\.(json|ya?ml|txt|log|db|sqlite3?|csv|ini|conf"""
+                          r"""|cfg|pem|crt|key|png|jpe?g|py|js|sh|md|html?|pdf)$""")
+    # ☢ AND THE DISCRIMINATOR THAT KEEPS THE QUOTED-LITERAL FIX FROM CRYING WOLF:
+    # a REAL token is random, so it carries DIGITS. A quoted, identifier-shaped,
+    # DIGIT-FREE value is a NAMED CONSTANT — e.g. `refresh_token: 'longLivedAccessToken'`,
+    # which is HA's own internal magic string (see .claude/skills/verifier-ha-panel/
+    # drive.js:10), not a credential. `token = "aB3kR9zQ7mN2xV5pL8wT1cY4"` has digits and
+    # is still caught. ⚠ The one real password ever committed (12 lowercase letters, no
+    # digits) was in YAML, where IDENT never applied — so this costs nothing there.
+    HAS_DIGIT = re.compile(r"\d")
 
     def entropy(s):
         return -sum((s.count(c) / len(s)) * math.log2(s.count(c) / len(s))
