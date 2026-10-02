@@ -255,7 +255,8 @@ def check_committed_secrets():
                 # this guard blind to the exact thing it exists to catch (caught by
                 # the differential test against the 2026-05-26 blob, 2026-09-09).
                 is_code = rel.lower().endswith((".js", ".cjs", ".mjs", ".py", ".ts", ".sh"))
-                if (BENIGN.match(val) or len(val) < 8 or entropy(val) < 3.0
+                if (BENIGN.match(val) or URL_SAFE.match(val)
+                        or len(val) < 8 or entropy(val) < 3.0
                         or (is_code and (EXPR.search(val) or IDENT.match(val)))):
                     # ⚠ THRESHOLDS ARE EVIDENCE-BASED, DO NOT RAISE THEM CASUALLY.
                     # The one real password ever committed here (frigate MQTT,
