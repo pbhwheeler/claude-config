@@ -33,12 +33,30 @@ IP_RE = re.compile(r"192\.168\.1\.\d{1,3}")
 # list short on purpose: a lint that cries wolf gets ignored, and a lint that
 # suppresses too much stops being worth running.
 HISTORICAL = ("was ", "were ", "history", "historical", "dead", "removed",
-              "cleared", "superseded", "moved", "retired", "old ", "no longer")
+              "cleared", "superseded", "moved", "retired", "old ", "no longer",
+              # added 2026-10-01: a sentence that states its own correction is the
+              # STRONGEST evidence the quoted value is history, and these were the
+              # words the live false positive actually used.
+              "corrected", "stale", "had fixed", "reintroduce")
 
 
-def is_historical(line):
-    low = line.lower()
-    return any(k in low for k in HISTORICAL)
+def is_historical(line, neighbours=()):
+    """True when this IP is being DISCUSSED, not asserted.
+
+    ⚠⚠ THE WINDOW MATTERS, NOT JUST THE LINE (widened 2026-10-01). Memory wraps at ~100
+    cols, so a correction routinely lands on the NEXT line. The live false positive:
+    `project_energy_controller.md:196` quotes a stale `192.168.1.253` that a doc audit had
+    FIXED, and the sentence continues on line 197 with "Both corrected to `.6`/`.7`
+    against two agreeing sources". Judging line 196 alone, the lint called correct memory
+    stale at every session start — and a permanent false warning teaches the reader to
+    skip the lint, including a real hit. `neighbours` = the adjacent lines of the same
+    paragraph; any historical marker in the window exempts the hit.
+    """
+    for l in (line,) + tuple(neighbours):
+        low = l.lower()
+        if any(k in low for k in HISTORICAL):
+            return True
+    return False
 
 warn = []
 
@@ -123,7 +141,10 @@ def check_device_ips(mem):
             ips = set(IP_RE.findall(line))
             if not ips:
                 continue
-            if is_historical(line):
+            # same-paragraph window: a wrapped sentence states its correction next door
+            lines_all = text.splitlines()
+            window = lines_all[max(0, n - 3):n + 2]
+            if is_historical(line, tuple(window)):
                 continue
             low = line.lower()
             for token, ip in live.items():
