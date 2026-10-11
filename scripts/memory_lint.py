@@ -162,7 +162,9 @@ def check_device_ips(mem):
 
 
 def check_alert_slots(mem):
-    """Memory naming an entity for a reachability slot the live helper no longer holds."""
+    """Memory naming an entity for an alert slot the live helper no longer holds.
+    Slot numbers repeat across families (reachability 2 and stall 2 are different
+    helpers), so the line's family word picks which helper to compare against."""
     try:
         cfg = json.load(open("/home/em/.claude.json"))
         auth = cfg["projects"]["/home/em/development"]["mcpServers"]["home-assistant"]["headers"]["Authorization"]
