@@ -95,12 +95,14 @@ def load_memory():
 
 
 def check_deploy_pointer(alltext):
-    """The newest commit touching the controller must be named somewhere in memory,
-    and what is RUNNING must match what is committed."""
-    head = sh(["git", "log", "-1", "--format=%h", "--", CTRL], cwd=REPO)
-    if head and head not in alltext:
-        subject = sh(["git", "log", "-1", "--format=%s", "--", CTRL], cwd=REPO)[:60]
-        warn.append("energy_controller %s not named in memory (%s)" % (head, subject))
+    """The newest commits touching the controller must be named somewhere in memory,
+    and what is RUNNING must match what is committed. Five, not one: a quick
+    follow-up commit used to hide the unrecorded one before it (5066b99, 2026-10)."""
+    recent = sh(["git", "log", "-5", "--format=%h %s", "--", CTRL], cwd=REPO) or ""
+    for row in recent.splitlines():
+        head, _, subject = row.partition(" ")
+        if head and head not in alltext:
+            warn.append("energy_controller %s not named in memory (%s)" % (head, subject[:60]))
     live, repo = md5(APPS + "/energy_controller.py"), md5(REPO + "/" + CTRL)
     if live and repo and live != repo:
         warn.append("live energy_controller.py differs from the repo copy — undeployed or hand-edited")
