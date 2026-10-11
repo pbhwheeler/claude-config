@@ -179,21 +179,30 @@ def check_alert_slots(mem):
         states = json.loads(out)
     except Exception:
         return
+    families = "reachability|stall|battery|flood|airtag|detection"
     slots = {}
     for s in states:
-        m = re.fullmatch(r"input_text\.ha_alert_manager_reachability_(\d+)", s.get("entity_id", ""))
+        m = re.fullmatch(r"input_text\.ha_alert_manager_(%s)_(\d+)" % families, s.get("entity_id", ""))
         if m:
-            slots[m.group(1)] = (s.get("state") or "").strip()
+            slots[(m.group(1), m.group(2))] = (s.get("state") or "").strip()
     ent_re = re.compile(r"\b((?:binary_)?sensor\.[a-z0-9_]+)")
+    slot_re = re.compile(r"(?:\b(%s)\s+)?slot (\d{1,2})\b" % families, re.I)
+    fam_re = re.compile(r"\b(%s)\b" % families, re.I)
     for name, text in mem.items():
         for n, line in enumerate(text.splitlines(), 1):
-            m = re.search(r"[Ss]lot (\d{1,2})\b", line)
-            if not m or m.group(1) not in slots or is_historical(line):
+            m = slot_re.search(line)
+            if not m or is_historical(line):
+                continue
+            # family: the word right before "slot", else any family word on the
+            # line, else reachability (the original, unqualified meaning)
+            fam = m.group(1) or (fam_re.search(line) or [None, "reachability"])[1]
+            key = (fam.lower(), m.group(2))
+            if key not in slots:
                 continue
             for ent in ent_re.findall(line):
-                if ent not in slots[m.group(1)]:
-                    warn.append("alert slot %s: memory names %s, live slot = %s (%s:%d)"
-                                % (m.group(1), ent, slots[m.group(1)] or "EMPTY", name, n))
+                if ent not in slots[key]:
+                    warn.append("%s slot %s: memory names %s, live slot = %s (%s:%d)"
+                                % (key[0], key[1], ent, slots[key] or "EMPTY", name, n))
                     break
 
 
