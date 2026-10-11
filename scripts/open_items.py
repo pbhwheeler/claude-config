@@ -57,7 +57,11 @@ SELF_RE = re.compile(r"open_items\.py|/open\b|`/open`", re.I)
 # strips them before matching. ⚠ Irony worth keeping: that file's own line 14 warns
 # "completed work kept its ⏳ and was reported open for months" — which is exactly
 # what the file itself was doing to this digest.
-SKIP_FILES = {"feedback_open_item_markers"}
+# 2026-10-11: two more files whose glyphs are all prose ABOUT markers, never work —
+# the matplotlib note (emoji render as tofu) and the correct-in-place rule.
+# ⚠ A real open item written into any of these three files is INVISIBLE to /open.
+SKIP_FILES = {"feedback_open_item_markers", "feedback_matplotlib_emoji_tofu",
+              "feedback_memory_correct_in_place"}
 CLEAN = [(re.compile(r"\[\[([^\]]+)\]\]"), r"\1"),
          (re.compile(r"\[([^\]]+)\]\([^)]*\)"), r"\1"),
          (re.compile(r"`([^`]*)`"), r"\1"),
