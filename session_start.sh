@@ -136,3 +136,9 @@ timeout 5 python3 /home/em/.claude-config/scripts/watch_roster.py 2>/dev/null ||
 # 8) Standing one-line reminder that the open-items digest exists (user chose
 # this over auto-loading the full digest: ~15 tokens vs ~1,400 every session).
 timeout 5 python3 /home/em/.claude-config/scripts/open_items.py --count 2>/dev/null || true
+
+# 9) Mirror the open items WAITING ON THE USER into HA's "HA Projects" to-do list
+# (user 2026-10-21). Prints only what needs the model: items the user TICKED on the
+# phone (close them in memory) and items they added by hand (make them memory items).
+# Silent when HA is unreachable. The memory PostToolUse hook also runs it after edits.
+timeout 15 python3 /home/em/.claude-config/scripts/sync_ha_todo.py 2>/dev/null || true
