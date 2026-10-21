@@ -46,7 +46,7 @@ def main():
         "(Bash or Write/Edit) before it lands, losing the result -- treat a hang as "
         "UNKNOWN and re-verify with a separate tiny read, never assume failure. For "
         "slow shell writes to /mnt/ha Samba, detach so the abort cannot kill them: "
-        "write to a temp file in the SAME directory and rename it into place (rename-with-replace is atomic on this CIFS mount, verified 2026-09-18): setsid sh -c 'cp SRC DST.tmp && mv -f DST.tmp DST' </dev/null >/dev/null 2>&1 &  then verify by the TARGET's md5 == the source's, never by a log line."
+        "write to a temp file in the SAME directory and rename it into place: setsid sh -c 'cp SRC DST.tmp && mv -f DST.tmp DST' </dev/null >/dev/null 2>&1 &  then verify by the TARGET's md5 == the source's, never by a log line. WARNING: the rename is NOT reliably atomic (2026-10-21 /mnt/ha_addons: it deleted the target and left DST.tmp; AppDaemon stopped the app). If the target is missing, mv DST.tmp DST then touch DST (AppDaemon will not reload on the old mtime)."
     )
     print(json.dumps({
         "hookSpecificOutput": {
