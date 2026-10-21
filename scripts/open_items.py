@@ -19,12 +19,18 @@ CANONICAL MARKING FORM (feedback_open_item_markers):
     ⏳ [YYYY-MM-DD] text     open item; bracketed date = when RAISED
     🗓️ [YYYY-MM-DD] text     item with a real DEADLINE
     ✅ [YYYY-MM-DD] text     done — replace the marker, keep the date (closes the loop)
+    ⏳👤 «Short title» [YYYY-MM-DD] text
+                             WAITING ON THE USER (their hands, decision or confirmation).
+                             The «title» becomes the item on HA's "HA Projects" to-do
+                             list (sync_ha_todo.py); without one the text is cut short.
 Legacy forms still parsed: a bare ⏳, and "~YYYY-MM-DD" / "due YYYY-MM-DD" inside
 the clause as a deadline. Partial "YYYY-MM" dates are accepted (1st of month).
 
 USAGE:  open_items.py          full digest
         open_items.py --due    ON-A-CLOCK section only; prints NOTHING if empty
                                (SessionStart hook: silent when clean, like the lint)
+        open_items.py --user   only the 👤 items (waiting on the user)
+        open_items.py --json   every item as JSON (for sync_ha_todo.py)
         open_items.py --count  ONE line, always: "N marked open items — /open …"
                                (SessionStart hook: the standing reminder that the
                                digest exists, ~15 tokens; user chose this over
@@ -42,6 +48,8 @@ import textwrap
 
 MEM = "/home/em/.claude/projects/-home-em-development/memory"
 OPEN, DUE = "⏳", "🗓️"
+USER = "👤"
+TITLE_RE = re.compile(r"^[\s*]*«([^»]+)»\s*")
 MARK_RE = re.compile("(" + re.escape(OPEN) + "|" + re.escape(DUE) + ")")
 BRACKET_DATE = re.compile(r"^\s*\[(\d{4}-\d{2}(?:-\d{2})?)\]")
 INLINE_DATE = re.compile(r"(~?)(\d{4}-\d{2}(?:-\d{2})?)(?!\d)")
@@ -130,6 +138,14 @@ def collect():
                 if DONE_RE.search(clause[:60]) or LABEL_RE.match(clause):
                     continue
                 when, month = None, False
+                user = clause.lstrip().startswith(USER)
+                title = None
+                if user:
+                    clause = clause.lstrip()[len(USER):]
+                    t = TITLE_RE.match(clause)
+                    if t:
+                        title = clean(t.group(1))
+                        clause = clause[t.end():]
                 b = BRACKET_DATE.match(clause)
                 if b:
                     p = parse_date(b.group(1))
@@ -146,14 +162,14 @@ def collect():
                             if d.group(1) == "~" or DUE_CUE.search(pre):
                                 kind = "due"
                 text = clean(clause)
-                if len(text) < MIN_LEN:
+                if len(text) < MIN_LEN and not title:
                     continue
                 key = norm_key(text)
                 if key in seen:                            # exact restatement
                     continue
                 seen.add(key)
                 items.append(dict(file=fname, kind=kind, when=when, month=month,
-                                  text=excerpt(text)))
+                                  text=excerpt(text), user=user, title=title))
     return items
 
 
@@ -166,6 +182,16 @@ def main():
     due_only = "--due" in sys.argv[1:]
     today = dt.date.today()
     items = collect()
+    if "--json" in sys.argv[1:]:
+        import json
+        print(json.dumps([dict(it, when=it["when"].isoformat() if it["when"] else None)
+                          for it in items], ensure_ascii=False))
+        return 0
+    for it in items:                                       # 👤 shows in every listing
+        if it["user"]:
+            it["text"] = USER + " " + (f"{it['title']} — " if it["title"] else "") + it["text"]
+    if "--user" in sys.argv[1:]:
+        items = [it for it in items if it["user"]]
     if "--count" in sys.argv[1:]:
         files = len({it["file"] for it in items})
         print(f"📋 {len(items)} marked open items across {files} files — /open to choose a focus")
