@@ -32,6 +32,7 @@ import time
 from pathlib import Path
 
 CONFIG_PATH = Path("~/.config/daily-report/imap.cfg").expanduser()
+IMAP_TIMEOUT_S = 60
 LOG_PATH = Path("~/.local/share/daily-report.log").expanduser()
 
 # Ad-hoc notes — drop a markdown file into NOTES_PENDING and tonight's report
