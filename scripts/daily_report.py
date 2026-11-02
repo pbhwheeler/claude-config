@@ -348,7 +348,9 @@ def send_report(cfg: dict[str, str], raw_msg: bytes) -> dict[str, str]:
     folder name to status text. Mutates cfg to cache the discovered sent
     folder if absent."""
     port = int(cfg["imap_port"])
-    with imaplib.IMAP4_SSL(cfg["imap_server"], port) as M:
+    # Without a timeout a silently dropped connection blocks forever — from
+    # 2026-10-17 every nightly run hung that way and piled up.
+    with imaplib.IMAP4_SSL(cfg["imap_server"], port, timeout=IMAP_TIMEOUT_S) as M:
         M.login(cfg["username"], cfg["password"])
 
         results = {}
