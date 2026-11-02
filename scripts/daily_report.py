@@ -375,7 +375,13 @@ def send_report(cfg: dict[str, str], raw_msg: bytes) -> dict[str, str]:
         else:
             results["(no sent folder found)"] = "skipped"
 
-        M.logout()
+        # The server drops the socket on LOGOUT before imaplib reads the
+        # tagged reply, raising abort AFTER both appends succeeded. That used
+        # to mark a delivered report as failed and leave its notes unarchived.
+        try:
+            M.logout()
+        except (imaplib.IMAP4.abort, OSError):
+            pass
     return results
 
 
