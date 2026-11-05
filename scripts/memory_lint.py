@@ -339,6 +339,22 @@ def check_repo_state():
         warn.append("HomeAssistant repo: %s unpushed commit(s)" % ahead)
 
 
+def check_docs_drift():
+    """Documentation drift (owner's upkeep plan, 2026-11-05): repo vs live, Assist prompt, generated
+    manual facts, PDF rebuilt, delta-audit due. The checker prints its own '⚑ docs:' lines."""
+    tool = os.path.join(REPO, "tools", "doc_drift_check.py")
+    if not os.path.exists(tool):
+        return
+    try:
+        r = subprocess.run([sys.executable, tool], capture_output=True, text=True, timeout=5)
+    except subprocess.TimeoutExpired:
+        warn.append("docs: drift check timed out")
+        return
+    for line in r.stdout.splitlines():
+        if line.startswith("⚑ "):
+            warn.append(line[2:])
+
+
 def main():
     signal.signal(signal.SIGALRM, bail)
     signal.alarm(8)
@@ -352,8 +368,9 @@ def main():
     check_alert_slots(mem)
     check_committed_secrets()
     check_repo_state()
+    check_docs_drift()
     signal.alarm(0)
-    for w in warn[:8]:
+    for w in warn[:12]:
         print("⚑ " + w)
 
 
