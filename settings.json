@@ -1,13 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "acceptEdits",
-    "additionalDirectories": [
-      "/home/em/development",
-      "/home/em/.claude/projects/-home-em-development/memory",
-      "/mnt/ha",
-      "/mnt/ha_addons",
-      "/tmp/claude-1000"
-    ],
     "allow": [
       "Bash(curl:*)",
       "Bash(ssh root@192.168.1.1:*)",
@@ -48,6 +40,14 @@
       "Bash(pdftoppm:*)",
       "Bash(pdffonts:*)",
       "Bash(sh /tmp/claude-1000/:*)"
+    ],
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "/home/em/development",
+      "/home/em/.claude/projects/-home-em-development/memory",
+      "/mnt/ha",
+      "/mnt/ha_addons",
+      "/tmp/claude-1000"
     ]
   },
   "model": "opus",
@@ -125,7 +125,8 @@
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",
+  "autoDreamEnabled": false,
   "theme": "dark",
   "agentPushNotifEnabled": true,
-  "autoDreamEnabled": false
+  "skipWorkflowUsageWarning": true
 }
