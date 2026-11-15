@@ -355,6 +355,18 @@ def check_docs_drift():
             warn.append(line[2:])
 
 
+def check_spotifyplus_patch():
+    """Local spotifyplus-card patch (owner 2026-11-15, Search opens empty). A HACS card update silently
+    overwrites it; warn so it gets re-applied with HomeAssistant/tools/patch_spotifyplus_card.py."""
+    js = "/mnt/ha/www/community/spotifyplus_card/spotifyplus_card.js"
+    try:
+        with open(js, encoding="utf-8", errors="replace") as f:
+            if "LOCAL PATCH" not in f.read():
+                warn.append("spotifyplus-card patch MISSING (card updated?) - run HomeAssistant/tools/patch_spotifyplus_card.py")
+    except OSError:
+        pass
+
+
 def main():
     signal.signal(signal.SIGALRM, bail)
     signal.alarm(8)
@@ -369,6 +381,7 @@ def main():
     check_committed_secrets()
     check_repo_state()
     check_docs_drift()
+    check_spotifyplus_patch()
     signal.alarm(0)
     for w in warn[:12]:
         print("⚑ " + w)
