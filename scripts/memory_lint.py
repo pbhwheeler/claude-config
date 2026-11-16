@@ -355,6 +355,21 @@ def check_docs_drift():
             warn.append(line[2:])
 
 
+def check_broken_refs():
+    """Broken references Watchman cannot see (owner, 2026-11-16): AppDaemon apps, JS panels, helper values
+    that name an entity, and references unavailable for a week. The checker prints its own '⚑ refs:' lines."""
+    tool = os.path.join(REPO, "tools", "ref_check.py")
+    if not os.path.exists(tool):
+        return
+    try:
+        r = subprocess.run([sys.executable, tool], capture_output=True, text=True, timeout=4)
+    except subprocess.TimeoutExpired:
+        return
+    for line in r.stdout.splitlines():
+        if line.startswith("⚑ "):
+            warn.append(line[2:])
+
+
 def check_spotifyplus_patch():
     """Local spotifyplus-card patch (owner 2026-11-15, Search opens empty). A HACS card update silently
     overwrites it; warn so it gets re-applied with HomeAssistant/tools/patch_spotifyplus_card.py."""
@@ -381,6 +396,7 @@ def main():
     check_committed_secrets()
     check_repo_state()
     check_docs_drift()
+    check_broken_refs()
     check_spotifyplus_patch()
     signal.alarm(0)
     for w in warn[:12]:
