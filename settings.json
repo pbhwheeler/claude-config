@@ -126,7 +126,7 @@
   "effortLevel": "xhigh",
   "tui": "fullscreen",
   "autoDreamEnabled": false,
+  "skipWorkflowUsageWarning": true,
   "theme": "dark",
-  "agentPushNotifEnabled": true,
-  "skipWorkflowUsageWarning": true
+  "agentPushNotifEnabled": true
 }
