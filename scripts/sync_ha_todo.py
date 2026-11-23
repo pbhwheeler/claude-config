@@ -57,11 +57,24 @@ def key_of(it):
     return hashlib.sha1(f"{it['file']}|{it['title'] or it['text'][:60]}".encode()).hexdigest()[:10]
 
 
+# The HA todo-list card keeps a title on ONE line and card_mod cannot reach it, so at phone width
+# (360 px) anything past ~38 characters ran off the edge (owner 2026-11-22). Cap the title; the full
+# one opens the description.
+TITLE_MAX = 36
+
+
+def full_title(it):
+    return it["title"] or it["text"]
+
+
 def summary_of(it):
-    if it["title"]:
-        return it["title"]
-    t = it["text"]
-    return t if len(t) <= 90 else t[:89].rstrip() + "…"
+    t = full_title(it)
+    if len(t) <= TITLE_MAX:
+        return t
+    cut = t[:TITLE_MAX - 1]
+    if " " in cut[TITLE_MAX // 2:]:          # end on a word when one ends in the back half
+        cut = cut[:cut.rindex(" ")]
+    return cut.rstrip(" ,:;—-") + "…"
 
 
 def main():
@@ -74,7 +87,8 @@ def main():
             k = key_of(it)
             want[k] = dict(summary=summary_of(it),
                            due=it["when"] if it["kind"] == "due" else None,
-                           description=f"{it['text']}\n\nmemory: {it['file']}\nkey: {k}")
+                           description=(f"**{full_title(it)}**\n\n" if summary_of(it) != full_title(it) else "")
+                           + f"{it['text']}\n\nmemory: {it['file']}\nkey: {k}")
     try:
         TOKEN = token()
         have = call("get_items", {}, response=True)["service_response"][ENTITY]["items"]
